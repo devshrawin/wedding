@@ -251,9 +251,14 @@ export async function fetchLinkPreview(raw: string): Promise<LinkPreview | null>
   try {
     const { html, finalUrl } = await safeFetch(url);
     const data = extractFromHtml(html, finalUrl);
-    // Captcha / bot walls give useless titles.
-    const junk = !data.title || /robot check|captcha|access denied|are you a human|just a moment|page not found|sign in/i.test(data.title);
-    if (junk) return { url: finalUrl.toString(), store: data.store, title: titleFromUrl(finalUrl), image: null, price: null, fetched: false };
+    // Captcha / bot walls and generic landing pages give useless titles.
+    const bare = (data.title ?? "").replace(/\.(in|com|co\.in)$/i, "").trim().toLowerCase();
+    const junk =
+      !data.title ||
+      bare.length < 6 ||
+      bare === data.store.toLowerCase() ||
+      /robot check|captcha|access denied|are you a human|just a moment|page not found|sign in|something went wrong|online shopping/i.test(data.title);
+    if (junk) return { url: finalUrl.toString(), store: data.store, title: titleFromUrl(finalUrl) ?? titleFromUrl(url), image: null, price: null, fetched: false };
     return { url: finalUrl.toString(), ...data, fetched: true };
   } catch {
     return { url: url.toString(), store, title: titleFromUrl(url), image: null, price: null, fetched: false };
