@@ -12,7 +12,15 @@ export type ItemView = Item & {
   /** 0–100 */
   progress: number;
   givers: number;
+  /** chip-in gifts only: amount guests can still pledge (null otherwise) */
+  chipInLeft: number | null;
 };
+
+/** Money still needed on a chip-in gift: target minus confirmed and pending (unverified) amounts. */
+export function chipInRemaining(target: number, given: { amount: number; status: string }[]): number {
+  const taken = given.filter((c) => c.status === "confirmed" || c.status === "pending").reduce((s, c) => s + c.amount, 0);
+  return Math.max(0, target - taken);
+}
 
 export const isActiveReservation = (r: Reservation) => r.status !== "cancelled";
 export const countsTowardTotal = (c: Contribution) => c.status === "confirmed";
@@ -51,6 +59,7 @@ export function computeItems(items: Item[], reservations: Reservation[], contrib
         fulfilled,
         progress,
         givers: res.length + con.filter(isLiveContribution).length,
+        chipInLeft: item.kind === "product" && item.allowChipIn && target != null ? chipInRemaining(target, con) : null,
       };
     });
 }

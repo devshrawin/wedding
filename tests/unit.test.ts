@@ -18,7 +18,7 @@ const res = (p: Partial<Reservation>): Reservation => ({
 });
 const con = (p: Partial<Contribution>): Contribution => ({
   id: "c", registryId: "r", itemId: "f1", itemTitle: "Fund", guestKey: "g2", guestName: "B", guestPhone: null, guestPlace: null, message: null,
-  anonymous: false, amount: 1101, fee: 0, method: "upi", status: "confirmed", utr: null, razorpayOrderId: null, razorpayPaymentId: null,
+  anonymous: false, amount: 1101, fee: 0, method: "upi", status: "confirmed", utr: null, proofImage: null, razorpayOrderId: null, razorpayPaymentId: null,
   thankedAt: null, createdAt: now, ...p,
 });
 

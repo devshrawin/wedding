@@ -10,6 +10,8 @@ import { createOrder, platformFeePaise, verifyPaymentSignature } from "@/lib/raz
 import { allow, hit } from "@/lib/rate-limit";
 import { fail, type Result } from "@/lib/result";
 import { normalizePhone } from "@/lib/utils";
+import { chipInRemaining } from "@/lib/compute";
+import { deleteImage, saveImage } from "@/lib/images";
 
 async function openRegistry(slug: string) {
   const registry = await getRegistryBySlug(slug);
@@ -19,7 +21,7 @@ async function openRegistry(slug: string) {
 }
 
 export async function unlockRegistry(slug: string, password: string): Promise<Result> {
-  if (!(await allow("unlock", 10, 10 * 60_000, slug)) || !hit(`unlock-all:${slug}`, 40, 10 * 60_000)) return fail("rate");
+  if (!(await allow("unlock", 10, 10 * 60_000, slug)) || !(await hit(`unlock-all:${slug}`, 40, 10 * 60_000))) return fail("rate");
   const registry = await getRegistryBySlug(slug);
   if (!registry || registry.visibility !== "password") return fail("notfound");
   if (!verifyPassword((password || "").trim(), registry.passwordHash)) return fail("password");
@@ -114,6 +116,8 @@ const contributeSchema = z.object({
   amount: z.number().int().min(1).max(1_000_000),
   method: z.enum(["upi", "cash"]),
   utr: z.string().trim().max(30).regex(/^[A-Za-z0-9]*$/).optional().transform((v) => v || null),
+  /** optional payment screenshot, compressed in the browser */
+  proof: z.string().max(560_000).optional(),
   ...guestFields,
 });
 
@@ -141,8 +145,8 @@ async function contributableItem(tx: Tx, registryId: string, itemId: string, amo
     .from(schema.reservations)
     .where(and(eq(schema.reservations.itemId, item.id), ne(schema.reservations.status, "cancelled")));
   if (res.length) return null;
-  const confirmed = given.filter((c) => c.status === "confirmed").reduce((sum, c) => sum + c.amount, 0);
-  return amount <= item.price * item.quantity - confirmed ? item : null;
+  // Pledged-but-unconfirmed money counts too, so the gift can't be over-funded.
+  return amount <= chipInRemaining(item.price * item.quantity, given) ? item : null;
 }
 
 export async function contribute(slug: string, input: z.input<typeof contributeSchema>): Promise<Result<{ id: string }>> {
@@ -158,6 +162,8 @@ export async function contribute(slug: string, input: z.input<typeof contributeS
   const guestKey = await ensureGuestKey();
   const db = await getDb();
   const id = newId();
+  const proofImage = d.method === "upi" && d.proof ? await saveImage(registry.id, "proof", d.proof) : null;
+  if (d.proof && d.method === "upi" && !proofImage) return fail("invalid");
   const ok = await db.transaction(async (tx) => {
     const item = await contributableItem(tx, registry.id, d.itemId, d.amount, guestKey);
     if (!item) return false;
@@ -175,16 +181,20 @@ export async function contribute(slug: string, input: z.input<typeof contributeS
       method: d.method,
       status: "pending", // the couple confirms once they see it in their bank / in hand
       utr: d.utr,
+      proofImage,
     });
     return true;
   });
-  if (!ok) return fail("unavailable");
+  if (!ok) {
+    await deleteImage(registry.id, proofImage);
+    return fail("unavailable");
+  }
   return { ok: true, id };
 }
 
 // ── Razorpay (optional gateway) ───────────────────────────────────────
 
-const orderSchema = contributeSchema.omit({ method: true, utr: true });
+const orderSchema = contributeSchema.omit({ method: true, utr: true, proof: true });
 
 export async function startRazorpay(
   slug: string,

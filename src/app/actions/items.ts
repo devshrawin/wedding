@@ -10,6 +10,7 @@ import { allow } from "@/lib/rate-limit";
 import { fail, type Result } from "@/lib/result";
 import { getLang } from "@/lib/i18n";
 import { manage, seedRows } from "@/lib/manage";
+import { imageIdFromPath, saveImage } from "@/lib/images";
 
 const MAX_ITEMS = 200;
 
@@ -32,7 +33,9 @@ export type ItemInput = z.input<typeof itemSchema>;
 function sanitize(d: z.output<typeof itemSchema>) {
   const url = d.url ? parseSafeUrl(d.url)?.toString() ?? null : null;
   let imageUrl: string | null = null;
-  if (d.imageUrl) {
+  if (d.imageUrl && imageIdFromPath(d.imageUrl)) {
+    imageUrl = d.imageUrl; // uploaded by the couple, served from /img
+  } else if (d.imageUrl) {
     try {
       const u = new URL(d.imageUrl);
       if (u.protocol === "https:") imageUrl = u.toString();
@@ -50,6 +53,15 @@ function sanitize(d: z.output<typeof itemSchema>) {
     quantity: fund ? 1 : d.quantity,
     allowChipIn: fund ? false : d.allowChipIn && d.price != null && d.quantity === 1,
   };
+}
+
+/** Couple picks a photo for a gift (e.g. when the store blocked our link fetch). */
+export async function uploadItemImage(slug: string, dataUrl: string): Promise<Result<{ path: string }>> {
+  const m = await manage(slug);
+  if (!m) return fail("auth");
+  if (!(await allow("upload", 60, 10 * 60_000, m.user.id))) return fail("rate");
+  const path = await saveImage(m.registry.id, "item", dataUrl);
+  return path ? { ok: true, path } : fail("invalid");
 }
 
 export async function previewLink(slug: string, url: string): Promise<Result<{ preview: LinkPreview }>> {

@@ -1,4 +1,9 @@
-import { boolean, index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+import { boolean, customType, index, integer, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
+
+const bytea = customType<{ data: Buffer; driverData: Buffer | Uint8Array }>({
+  dataType: () => "bytea",
+  fromDriver: (v) => (Buffer.isBuffer(v) ? v : Buffer.from(v)),
+});
 
 const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull().defaultNow();
 
@@ -34,7 +39,7 @@ export const registries = pgTable("registries", {
   weddingDate: text("wedding_date"), // ISO yyyy-mm-dd
   city: text("city"),
   note: text("note"),
-  photo: text("photo"), // small compressed data URL
+  photo: text("photo"), // "/img/<id>" served from the images table
   theme: text("theme").notNull().default("sindoor"),
   // privacy
   visibility: text("visibility").notNull().default("link"), // link | password | invite
@@ -130,6 +135,7 @@ export const contributions = pgTable(
     method: text("method").notNull(), // upi | razorpay | cash
     status: text("status").notNull().default("pending"), // initiated | pending | confirmed | rejected
     utr: text("utr"),
+    proofImage: text("proof_image"), // "/img/<id>" — optional payment screenshot from the guest
     razorpayOrderId: text("razorpay_order_id"),
     razorpayPaymentId: text("razorpay_payment_id"),
     thankedAt: timestamp("thanked_at", { withTimezone: true }),
@@ -153,6 +159,34 @@ export const invites = pgTable(
   },
   (t) => [index("invites_registry_idx").on(t.registryId)],
 );
+
+/**
+ * Uploaded pictures (couple photo, item photos, payment screenshots), served by /img/[id].
+ * Kept out of the main rows so registry queries stay small; swap for object storage
+ * (Supabase Storage, S3) by changing lib/images.ts only.
+ */
+export const images = pgTable(
+  "images",
+  {
+    id: text("id").primaryKey(),
+    registryId: text("registry_id")
+      .notNull()
+      .references(() => registries.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(), // couple | item | proof
+    mime: text("mime").notNull(),
+    bytes: integer("bytes").notNull(),
+    data: bytea("data").notNull(),
+    createdAt: createdAt(),
+  },
+  (t) => [index("images_registry_idx").on(t.registryId)],
+);
+
+/** Fixed-window counters shared by every app instance. */
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").notNull(),
+  resetAt: timestamp("reset_at", { withTimezone: true }).notNull(),
+});
 
 export type User = typeof users.$inferSelect;
 export type Registry = typeof registries.$inferSelect;

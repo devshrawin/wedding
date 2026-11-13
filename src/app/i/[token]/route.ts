@@ -9,7 +9,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ token: s
   const { token } = await params;
   const origin = new URL(req.url).origin;
   const ip = ipFromHeaders(req.headers);
-  if (!/^[a-z0-9]{20}$/.test(token) || !hit(`invite:${ip}`, 40, 10 * 60_000)) {
+  if (!/^[a-z0-9]{20}$/.test(token) || !(await hit(`invite:${ip}`, 40, 10 * 60_000))) {
     return NextResponse.redirect(new URL("/invite-invalid", origin));
   }
   const db = await getDb();

@@ -4,6 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { getUser, hashPassword, stampPasswordHash } from "@/lib/auth";
 import { manage, seedRows } from "@/lib/manage";
+import { deleteImage, saveImage } from "@/lib/images";
 import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/ids";
 import { allow } from "@/lib/rate-limit";
@@ -76,7 +77,6 @@ export async function createRegistry(input: z.input<typeof createSchema>): Promi
       weddingDate: d.weddingDate,
       city: d.city,
       note: d.note,
-      photo: d.photo,
       theme: d.theme,
     });
     const rows = seedRows(id, d.catalogIds, d.fundIds, d.lang);
@@ -85,6 +85,10 @@ export async function createRegistry(input: z.input<typeof createSchema>): Promi
   } catch (e) {
     console.error("[createRegistry]", e); // e.g. two couples racing for the same slug
     return fail("server");
+  }
+  if (d.photo) {
+    const path = await saveImage(id, "couple", d.photo);
+    if (path) await db.update(schema.registries).set({ photo: path }).where(eq(schema.registries.id, id));
   }
   return { ok: true, slug };
 }
@@ -100,10 +104,16 @@ export async function updateDetails(slug: string, input: z.input<typeof detailsS
   if (!parsed.success) return fail("invalid");
   const { photo: p, ...rest } = parsed.data;
   const db = await getDb();
+  let photo: string | null | undefined; // undefined = unchanged
+  if (p !== "keep") {
+    photo = p ? await saveImage(m.registry.id, "couple", p) : null;
+    if (p && !photo) return fail("invalid");
+  }
   await db
     .update(schema.registries)
-    .set({ ...rest, ...(p === "keep" ? {} : { photo: p }) })
+    .set({ ...rest, ...(photo === undefined ? {} : { photo }) })
     .where(eq(schema.registries.id, m.registry.id));
+  if (photo !== undefined) await deleteImage(m.registry.id, m.registry.photo);
   return { ok: true };
 }
 
