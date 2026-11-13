@@ -63,7 +63,7 @@ export function SettingsForms({ slug, role, razorpay, registry, members }: Props
   return (
     <>
       <PrivacySection slug={slug} registry={registry} />
-      <UpiSection slug={slug} registry={registry} razorpay={razorpay} />
+      <UpiSection slug={slug} registry={registry} razorpay={razorpay} canEdit={role === "owner"} />
       <DetailsSection slug={slug} registry={registry} />
       <FamilySection slug={slug} members={members} canEdit={role === "owner"} />
       {role === "owner" && <DangerSection slug={slug} />}
@@ -139,12 +139,23 @@ function PrivacySection({ slug, registry }: Pick<Props, "slug" | "registry">) {
 
 // ── UPI ───────────────────────────────────────────────────────────────
 
-function UpiSection({ slug, registry, razorpay }: Pick<Props, "slug" | "registry" | "razorpay">) {
+function UpiSection({ slug, registry, razorpay, canEdit }: Pick<Props, "slug" | "registry" | "razorpay"> & { canEdit: boolean }) {
   const tr = useTr();
   const { pending, run } = useAction();
   const [upiId, setUpiId] = useState(registry.upiId);
   const [upiName, setUpiName] = useState(registry.upiName || registry.partnerOne);
   const valid = !upiId.trim() || (isValidUpiId(upiId) && upiName.trim().length > 0);
+  if (!canEdit) {
+    return (
+      <Section id="upi" title={tr("Receive shagun by UPI", "UPI से शगुन पाएँ")}>
+        <p className="text-[15px] text-muted">
+          {registry.upiId
+            ? tr(`Shagun goes to ${registry.upiName} (${registry.upiId}). Only the couple can change this.`, `शगुन ${registry.upiName} (${registry.upiId}) को जाता है। इसे सिर्फ़ जोड़ा बदल सकता है।`)
+            : tr("The couple hasn't added a UPI ID yet. Only they can add it.", "जोड़े ने अभी UPI ID नहीं जोड़ी है। इसे सिर्फ़ वही जोड़ सकते हैं।")}
+        </p>
+      </Section>
+    );
+  }
   return (
     <Section id="upi" title={tr("Receive shagun by UPI", "UPI से शगुन पाएँ")} hint={tr("Guests pay straight into your account with any UPI app. Giftr never touches the money and charges nothing.", "मेहमान किसी भी UPI ऐप से सीधे आपके खाते में भेजते हैं। Giftr पैसे को छूता नहीं और कोई शुल्क नहीं लेता।")}>
       <div className="space-y-4">

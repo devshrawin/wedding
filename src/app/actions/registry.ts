@@ -128,7 +128,8 @@ export async function updatePrivacy(slug: string, input: z.input<typeof privacyS
 
 export async function updateUpi(slug: string, input: { upiId: string; upiName: string }): Promise<Result> {
   const m = await manage(slug);
-  if (!m) return fail("auth");
+  // Where the money goes is the couple's call alone — family helpers can't redirect it.
+  if (!m || m.role !== "owner") return fail("auth");
   const upiId = (input.upiId || "").trim().toLowerCase();
   const upiName = (input.upiName || "").trim().slice(0, 60);
   if (upiId && (!isValidUpiId(upiId) || !upiName)) return fail("invalid");
