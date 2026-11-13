@@ -7,7 +7,7 @@ import { getRegistryBySlug, razorpayEnabled } from "@/lib/data";
 import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/ids";
 import { createOrder, platformFeePaise, verifyPaymentSignature } from "@/lib/razorpay";
-import { allow } from "@/lib/rate-limit";
+import { allow, hit } from "@/lib/rate-limit";
 import { fail, type Result } from "@/lib/result";
 import { normalizePhone } from "@/lib/utils";
 
@@ -19,7 +19,7 @@ async function openRegistry(slug: string) {
 }
 
 export async function unlockRegistry(slug: string, password: string): Promise<Result> {
-  if (!(await allow("unlock", 10, 10 * 60_000, slug))) return fail("rate");
+  if (!(await allow("unlock", 10, 10 * 60_000, slug)) || !hit(`unlock-all:${slug}`, 40, 10 * 60_000)) return fail("rate");
   const registry = await getRegistryBySlug(slug);
   if (!registry || registry.visibility !== "password") return fail("notfound");
   if (!verifyPassword((password || "").trim(), registry.passwordHash)) return fail("password");
@@ -78,7 +78,8 @@ export async function reserveItem(slug: string, input: z.input<typeof reserveSch
       .select({ id: schema.contributions.id, status: schema.contributions.status })
       .from(schema.contributions)
       .where(eq(schema.contributions.itemId, item.id));
-    if (chipIns.some((c) => c.status === "pending" || c.status === "confirmed")) return false;
+    // Only money the couple has confirmed blocks a reservation — an unverified pledge must not.
+    if (chipIns.some((c) => c.status === "confirmed")) return false;
     await tx.insert(schema.reservations).values({
       id,
       registryId: registry.id,
@@ -116,21 +117,32 @@ const contributeSchema = z.object({
   ...guestFields,
 });
 
-async function contributableItem(registryId: string, itemId: string) {
-  const db = await getDb();
-  const [item] = await db
+type Tx = Parameters<Parameters<Awaited<ReturnType<typeof getDb>>["transaction"]>[0]>[0];
+
+/** Runs inside a transaction holding the item's row lock (same lock reserveItem takes). */
+async function contributableItem(tx: Tx, registryId: string, itemId: string, amount: number, guestKey: string) {
+  const [item] = await tx
     .select()
     .from(schema.items)
     .where(and(eq(schema.items.id, itemId), eq(schema.items.registryId, registryId)))
+    .for("update")
     .limit(1);
   if (!item || item.hidden) return null;
+  const given = await tx
+    .select({ amount: schema.contributions.amount, status: schema.contributions.status, guestKey: schema.contributions.guestKey })
+    .from(schema.contributions)
+    .where(eq(schema.contributions.itemId, item.id));
+  // One guest can't pile up unconfirmed entries on the couple's dashboard.
+  if (given.filter((c) => c.guestKey === guestKey && c.status === "pending").length >= 3) return null;
   if (item.kind === "fund") return item;
-  if (!item.allowChipIn) return null;
-  const res = await db
+  if (!item.allowChipIn || !item.price) return null;
+  const res = await tx
     .select({ id: schema.reservations.id })
     .from(schema.reservations)
     .where(and(eq(schema.reservations.itemId, item.id), ne(schema.reservations.status, "cancelled")));
-  return res.length ? null : item;
+  if (res.length) return null;
+  const confirmed = given.filter((c) => c.status === "confirmed").reduce((sum, c) => sum + c.amount, 0);
+  return amount <= item.price * item.quantity - confirmed ? item : null;
 }
 
 export async function contribute(slug: string, input: z.input<typeof contributeSchema>): Promise<Result<{ id: string }>> {
@@ -143,26 +155,30 @@ export async function contribute(slug: string, input: z.input<typeof contributeS
   const who = guestIdentity(d);
   if (!who.ok) return fail("invalid");
   if (d.method === "upi" && !registry.upiId) return fail("payments_off");
-  const item = await contributableItem(registry.id, d.itemId);
-  if (!item) return fail("unavailable");
   const guestKey = await ensureGuestKey();
   const db = await getDb();
   const id = newId();
-  await db.insert(schema.contributions).values({
-    id,
-    registryId: registry.id,
-    itemId: item.id,
-    itemTitle: item.title,
-    guestKey,
-    guestName: who.name,
-    guestPhone: who.phone,
-    message: d.message,
-    anonymous: d.anonymous,
-    amount: d.amount,
-    method: d.method,
-    status: "pending", // the couple confirms once they see it in their bank / in hand
-    utr: d.utr,
+  const ok = await db.transaction(async (tx) => {
+    const item = await contributableItem(tx, registry.id, d.itemId, d.amount, guestKey);
+    if (!item) return false;
+    await tx.insert(schema.contributions).values({
+      id,
+      registryId: registry.id,
+      itemId: item.id,
+      itemTitle: item.title,
+      guestKey,
+      guestName: who.name,
+      guestPhone: who.phone,
+      message: d.message,
+      anonymous: d.anonymous,
+      amount: d.amount,
+      method: d.method,
+      status: "pending", // the couple confirms once they see it in their bank / in hand
+      utr: d.utr,
+    });
+    return true;
   });
+  if (!ok) return fail("unavailable");
   return { ok: true, id };
 }
 
@@ -183,11 +199,11 @@ export async function startRazorpay(
   const d = parsed.data;
   const who = guestIdentity(d);
   if (!who.ok) return fail("invalid");
-  const item = await contributableItem(registry.id, d.itemId);
-  if (!item) return fail("unavailable");
   const guestKey = await ensureGuestKey();
   const id = newId();
   try {
+    const item = await (await getDb()).transaction((tx) => contributableItem(tx, registry.id, d.itemId, d.amount, guestKey));
+    if (!item) return fail("unavailable");
     const order = await createOrder(d.amount, id, { registry: registry.slug, item: item.id });
     const db = await getDb();
     await db.insert(schema.contributions).values({

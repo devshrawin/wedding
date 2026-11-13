@@ -1,6 +1,6 @@
 "use server";
 
-import { and, desc, eq, gt } from "drizzle-orm";
+import { and, desc, eq, gt, lt, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { createSession, destroySession, hashOtp, isDemoMode } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
@@ -69,13 +69,21 @@ export async function verifyOtp(phoneRaw: string, codeRaw: string): Promise<Resu
     .orderBy(desc(schema.otpCodes.createdAt))
     .limit(1);
   if (!otp) return fail("otp_expired");
-  if (otp.attempts >= MAX_ATTEMPTS) return fail("rate");
-
-  if (otp.codeHash !== hashOtp(phone, code)) {
-    await db.update(schema.otpCodes).set({ attempts: otp.attempts + 1 }).where(eq(schema.otpCodes.id, otp.id));
-    return fail("otp_wrong");
-  }
-  await db.update(schema.otpCodes).set({ consumed: true }).where(eq(schema.otpCodes.id, otp.id));
+  // Spend an attempt atomically *before* comparing, so a burst of parallel guesses
+  // can't all slip through on the same counter value.
+  const [spent] = await db
+    .update(schema.otpCodes)
+    .set({ attempts: sql`${schema.otpCodes.attempts} + 1` })
+    .where(and(eq(schema.otpCodes.id, otp.id), eq(schema.otpCodes.consumed, false), lt(schema.otpCodes.attempts, MAX_ATTEMPTS)))
+    .returning({ id: schema.otpCodes.id });
+  if (!spent) return fail("rate");
+  if (otp.codeHash !== hashOtp(phone, code)) return fail("otp_wrong");
+  const [won] = await db
+    .update(schema.otpCodes)
+    .set({ consumed: true })
+    .where(and(eq(schema.otpCodes.id, otp.id), eq(schema.otpCodes.consumed, false)))
+    .returning({ id: schema.otpCodes.id });
+  if (!won) return fail("otp_expired");
 
   let [user] = await db.select().from(schema.users).where(eq(schema.users.phone, phone)).limit(1);
   if (!user) {

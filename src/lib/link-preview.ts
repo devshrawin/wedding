@@ -1,5 +1,7 @@
 import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
+import { request as httpRequest } from "node:http";
+import { request as httpsRequest } from "node:https";
+import { isIP, type LookupFunction } from "node:net";
 import { storeFromHost } from "./catalog";
 
 export type LinkPreview = {
@@ -57,51 +59,79 @@ export function parseSafeUrl(raw: string): URL | null {
   }
 }
 
-async function assertPublicHost(hostname: string) {
+/** Resolves a hostname once and returns a public address, or throws. */
+async function resolvePublic(hostname: string): Promise<{ address: string; family: number }> {
   const host = hostname.replace(/^\[|\]$/g, "");
   if (isIP(host)) {
     if (isPrivateIp(host)) throw new Error("blocked");
-    return;
+    return { address: host, family: isIP(host) };
   }
   const addrs = await lookup(host, { all: true });
   if (!addrs.length || addrs.some((a) => isPrivateIp(a.address))) throw new Error("blocked");
+  return addrs[0];
+}
+
+type RawResponse = { status: number; headers: Record<string, string | string[] | undefined>; body: string };
+
+/**
+ * One GET with the socket pinned to an address we already vetted. Without the pin the
+ * HTTP client would resolve the name a second time, and a rebinding DNS server could
+ * answer "public" to our check and "127.0.0.1" to the connection.
+ */
+function pinnedGet(url: URL, pin: { address: string; family: number }): Promise<RawResponse> {
+  return new Promise((resolve, reject) => {
+    const req = (url.protocol === "https:" ? httpsRequest : httpRequest)(
+      url,
+      {
+        method: "GET",
+        timeout: TIMEOUT_MS,
+        headers: { "User-Agent": UA, Accept: "text/html,application/xhtml+xml", "Accept-Language": "en-IN,en;q=0.9,hi;q=0.8", "Accept-Encoding": "identity" },
+        lookup: ((_host, opts, cb) => {
+          if (typeof opts === "object" && opts.all) cb(null, [pin]);
+          else cb(null, pin.address, pin.family);
+        }) as LookupFunction,
+      },
+      (res) => {
+        const status = res.statusCode ?? 0;
+        if (status >= 300 && status < 400) {
+          res.resume();
+          return resolve({ status, headers: res.headers, body: "" });
+        }
+        const chunks: Buffer[] = [];
+        let total = 0;
+        res.on("data", (c: Buffer) => {
+          chunks.push(c);
+          total += c.length;
+          if (total >= MAX_BYTES) res.destroy();
+        });
+        const done = () => resolve({ status, headers: res.headers, body: Buffer.concat(chunks).toString("utf8") });
+        res.on("end", done);
+        res.on("close", done);
+        res.on("error", done);
+      },
+    );
+    const timer = setTimeout(() => req.destroy(new Error("timeout")), TIMEOUT_MS);
+    req.on("timeout", () => req.destroy(new Error("timeout")));
+    req.on("error", reject);
+    req.on("close", () => clearTimeout(timer));
+    req.end();
+  });
 }
 
 async function safeFetch(start: URL): Promise<{ html: string; finalUrl: URL }> {
   let url = start;
   for (let hop = 0; hop < 5; hop++) {
-    await assertPublicHost(url.hostname);
-    const res = await fetch(url, {
-      redirect: "manual",
-      signal: AbortSignal.timeout(TIMEOUT_MS),
-      headers: {
-        "User-Agent": UA,
-        Accept: "text/html,application/xhtml+xml",
-        "Accept-Language": "en-IN,en;q=0.9,hi;q=0.8",
-      },
-    });
+    const res = await pinnedGet(url, await resolvePublic(url.hostname));
     if (res.status >= 300 && res.status < 400) {
-      const loc = res.headers.get("location");
-      const next = loc ? parseSafeUrl(new URL(loc, url).toString()) : null;
+      const loc = res.headers.location;
+      const next = typeof loc === "string" ? parseSafeUrl(new URL(loc, url).toString()) : null;
       if (!next) throw new Error("bad redirect");
       url = next;
       continue;
     }
-    if (!res.ok) throw new Error("http " + res.status);
-    const type = res.headers.get("content-type") || "";
-    if (!type.includes("html")) throw new Error("not html");
-    const reader = res.body?.getReader();
-    if (!reader) throw new Error("no body");
-    const chunks: Uint8Array[] = [];
-    let total = 0;
-    while (total < MAX_BYTES) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      chunks.push(value);
-      total += value.length;
-    }
-    reader.cancel().catch(() => {});
-    return { html: Buffer.concat(chunks).toString("utf8"), finalUrl: url };
+    if (res.status < 200 || res.status >= 300) throw new Error("http " + res.status);
+    if (!String(res.headers["content-type"] ?? "").includes("html")) throw new Error("not html");
+    return { html: res.body, finalUrl: url };
   }
   throw new Error("too many redirects");
 }

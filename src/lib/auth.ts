@@ -149,7 +149,7 @@ export async function checkAccess(registry: Registry): Promise<Access> {
       const issuedAt = (payload.iat ?? 0) * 1000;
       if (payload.rid === registry.id) {
         const db = await getDb();
-        if (payload.via === "invite" && payload.inv) {
+        if (payload.via === "invite" && payload.inv && registry.visibility === "invite") {
           // Invite must still exist — deleting it revokes access.
           const [inv] = await db.select().from(schema.invites).where(eq(schema.invites.id, String(payload.inv))).limit(1);
           if (inv && inv.registryId === registry.id) return { allowed: true, via: "invite", inviteName: inv.guestName };

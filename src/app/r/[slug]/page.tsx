@@ -70,7 +70,7 @@ export default async function GuestPage({ params }: Params) {
     .filter((i) => !i.hidden)
     .map((i) => {
       const mine = guestKey ? data.reservations.find((r) => r.itemId === i.id && r.guestKey === guestKey && r.status !== "cancelled") : undefined;
-      const hasChipIns = i.raised + i.pendingAmount > 0;
+      const hasChipIns = i.raised > 0;
       const state: GuestItem["state"] = i.kind === "fund" ? "open" : i.fulfilled ? (i.reservedQty > 0 ? "reserved" : "funded") : "available";
       return {
         id: i.id,

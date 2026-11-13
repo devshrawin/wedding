@@ -21,9 +21,16 @@ export function hit(key: string, limit: number, windowMs: number): boolean {
   return b.count <= limit;
 }
 
+/**
+ * The left-most X-Forwarded-For entry is whatever the client typed, so it must not
+ * key a rate limit. Prefer the header our own proxy sets, else the hop it appended.
+ */
+export function ipFromHeaders(h: { get(name: string): string | null }): string {
+  return h.get("x-real-ip")?.trim() || h.get("x-forwarded-for")?.split(",").pop()?.trim() || "local";
+}
+
 export async function clientIp(): Promise<string> {
-  const h = await headers();
-  return h.get("x-forwarded-for")?.split(",")[0]?.trim() || h.get("x-real-ip") || "local";
+  return ipFromHeaders(await headers());
 }
 
 /** Returns true when the request is allowed. */

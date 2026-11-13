@@ -54,16 +54,19 @@ export async function createRegistry(input: z.input<typeof createSchema>): Promi
   const d = parsed.data;
   const db = await getDb();
 
-  const base = [slugify(d.partnerOne).split("-")[0], slugify(d.partnerTwo).split("-")[0]].filter(Boolean).join("-") || "shaadi";
+  // Keep slugs short enough for getRegistryBySlug (≤ 40 chars) even with a suffix.
+  const part = (n: string) => slugify(n).split("-")[0].slice(0, 14);
+  const base = [part(d.partnerOne), part(d.partnerTwo)].filter(Boolean).join("-") || "shaadi";
   let slug = base;
   for (let i = 0; i < 6; i++) {
     const [clash] = await db.select({ id: schema.registries.id }).from(schema.registries).where(eq(schema.registries.slug, slug)).limit(1);
     if (!clash) break;
-    slug = `${base}-${newId(4)}`;
+    slug = `${base}-${newId(i < 4 ? 4 : 8)}`;
   }
 
   const id = newId();
-  await db.transaction(async (tx) => {
+  try {
+    await db.transaction(async (tx) => {
     await tx.insert(schema.registries).values({
       id,
       slug,
@@ -77,8 +80,12 @@ export async function createRegistry(input: z.input<typeof createSchema>): Promi
       theme: d.theme,
     });
     const rows = seedRows(id, d.catalogIds, d.fundIds, d.lang);
-    if (rows.length) await tx.insert(schema.items).values(rows);
-  });
+      if (rows.length) await tx.insert(schema.items).values(rows);
+    });
+  } catch (e) {
+    console.error("[createRegistry]", e); // e.g. two couples racing for the same slug
+    return fail("server");
+  }
   return { ok: true, slug };
 }
 
