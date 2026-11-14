@@ -16,7 +16,8 @@ Giftr gives a couple one link for their wedding. Guests open it on any phone (no
 - **Family mode:** parents help manage the registry from their own phone. Only the couple can change where money goes.
 - **Thank-you notes:** generated in Hindi or English, three tones, one tap to WhatsApp.
 - **The ledger:** a print-ready gift ledger (Save as PDF) plus CSV for Excel, including cash envelopes entered at the venue.
-- **Share card + QR:** drawn in the browser, so Hindi names render properly.
+- **QR studio:** six card designs (Seal with names around a round seal, Arch, Floral, Minimal, Garden art, Photo art) in four sizes (post, invitation, WhatsApp Status, A5 table card), the couple's initials in the centre of the code, PNG, printer SVG and a short animated video. A test decodes every design at three print sizes before it can ship. The UPI payment code stays plain black on white.
+- **Gentle motion:** page entrances, count-up totals, a gift box that opens when a gift is reserved, a short marigold-petal shower when money is sent, and an optional sparkle on the guest page. All of it stops when a phone asks for reduced motion.
 - **Hindi + English**, large touch targets, installable PWA, light on low-end Android.
 
 ## Run it
@@ -32,7 +33,9 @@ With no configuration the app uses an **embedded Postgres (PGlite)** stored in `
 npm test             # 24 unit tests: money maths, link parser, SSRF guard, signatures,
                      # OTP resend/lockout, shared rate limits, image checks (in-memory Postgres)
 npm run build && INSECURE_COOKIES=1 DEMO_MODE=true AUTH_SECRET=some-long-secret npm start
-npm run test:e2e     # full browser walkthrough + axe accessibility audit of 11 screens
+npm run test:e2e     # full browser walkthrough + axe accessibility audit of 11 screens + no sideways scroll
+npm run test:qr      # decodes all 24 QR design/size combinations at 3 sizes, the printer SVG, and the video export
+npm run screens      # captures the phone screens with demo couples
 npm run typecheck && npm run lint
 ```
 
