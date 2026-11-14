@@ -11,7 +11,8 @@
     "db:generate": "drizzle-kit generate",
     "test": "node --import tsx --test tests/unit.test.ts && node --conditions=react-server --import tsx --test tests/backend.test.ts",
     "test:e2e": "node tests/e2e.mjs",
-    "screens": "node tests/screens.mjs"
+    "screens": "node tests/screens.mjs",
+    "test:qr": "node tests/qr-scan.mjs"
   },
   "dependencies": {
     "@astryxdesign/core": "^0.7.15",
@@ -44,6 +45,7 @@
     "drizzle-kit": "^0.31.11",
     "eslint": "^9",
     "eslint-config-next": "15.5.29",
+    "jsqr": "^1.4.0",
     "tailwindcss": "^4",
     "tsx": "^4.23.15",
     "typescript": "^5"

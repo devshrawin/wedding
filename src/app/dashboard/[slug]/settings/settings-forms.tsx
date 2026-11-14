@@ -41,6 +41,7 @@ type Props = {
     upiId: string;
     upiName: string;
     ceremony: CeremonyDraft;
+    ambient: boolean;
   };
   members: { id: string; name: string; phone: string; relation: string | null }[];
 };
@@ -248,9 +249,20 @@ function DetailsSection({ slug, registry }: Pick<Props, "slug" | "registry">) {
     theme: registry.theme,
     photo: "keep",
   });
+  const [ambient, setAmbient] = useState(registry.ambient);
   return (
     <Section id="details" title={tr("Wedding details", "शादी की जानकारी")}>
       <RegistryFields value={draft} onChange={(p) => setDraft((d) => ({ ...d, ...p }))} currentPhoto={registry.photo} />
+      <div className="mt-5">
+        <Switch
+          label={tr("Gentle sparkle on your page", "आपके पेज पर हल्की चमक")}
+          description={tr("Petals drift and lights twinkle at the top of your guest page. Off for anyone whose phone asks for less motion.", "मेहमानों वाले पेज के ऊपर पंखुड़ियाँ गिरती हैं और लाइटें टिमटिमाती हैं। जिनके फ़ोन में कम हलचल चुनी है, उनके लिए बंद रहेगा।")}
+          labelSpacing="spread"
+          width="100%"
+          value={ambient}
+          onChange={setAmbient}
+        />
+      </div>
       <div className="mt-5">
         <Button
           variant="primary"
@@ -258,7 +270,7 @@ function DetailsSection({ slug, registry }: Pick<Props, "slug" | "registry">) {
           isLoading={pending}
           isDisabled={!draft.partnerOne.trim() || !draft.partnerTwo.trim()}
           label={tr("Save details", "जानकारी सेव करें")}
-          onClick={() => run(() => updateDetails(slug, draft), undefined, () => setDraft((d) => ({ ...d, photo: "keep" })))}
+          onClick={() => run(() => updateDetails(slug, { ...draft, ambient }), undefined, () => setDraft((d) => ({ ...d, photo: "keep" })))}
         />
       </div>
     </Section>

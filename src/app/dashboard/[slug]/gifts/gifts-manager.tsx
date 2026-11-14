@@ -162,9 +162,9 @@ export function GiftsManager({ slug, items, openAdd, tradition, giftWord }: { sl
                 <h2 className="mb-3 text-[13px] font-bold uppercase tracking-[0.12em] text-secondary">
                   {g.title} · {g.list.length}
                 </h2>
-                <ul className="space-y-2.5">
-                  {g.list.map((i) => (
-                    <li key={i.id}>
+                <ul className="stagger space-y-2.5">
+                  {g.list.map((i, n) => (
+                    <li key={i.id} style={{ "--i": n } as React.CSSProperties}>
                       <ClickableCard label={tr(`Edit ${i.title}`, `${i.title} बदलें`)} onClick={() => setMode({ edit: i })} padding={3}>
                         <div className={cn("flex items-center gap-3", i.hidden && "opacity-60")}>
                           <ItemThumb imageUrl={i.imageUrl} icon={i.icon} className="size-16 shrink-0 text-[15px]" />

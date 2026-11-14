@@ -1,10 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import QRCode from "qrcode";
-import { Banner } from "@astryxdesign/core/Banner";
 import { Button } from "@astryxdesign/core/Button";
 import { Card } from "@astryxdesign/core/Card";
 import { Heading } from "@astryxdesign/core/Heading";
@@ -12,12 +10,13 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { IconButton } from "@astryxdesign/core/IconButton";
 import { Text } from "@astryxdesign/core/Text";
 import { TextArea } from "@astryxdesign/core/TextArea";
-import { Download, Eye, Lock, MessageCircle, Share2, Trash2, UserPlus } from "lucide-react";
+import { Eye, Lock, MessageCircle, Trash2, UserPlus } from "lucide-react";
 import { createInvites, deleteInvite } from "@/app/actions/registry";
 import { useLang, useTr } from "@/components/lang";
 import { CopyButton, toast } from "@/components/ui/feedback";
 import { errorText } from "@/lib/result";
 import { whatsappLink } from "@/lib/utils";
+import { QrStudio } from "@/components/qr/qr-studio";
 
 function WhatsAppButton({ href, label, size = "lg" }: { href: string; label: string; size?: "md" | "lg" }) {
   return (
@@ -44,6 +43,7 @@ type Props = {
     city: string | null;
     visibility: "link" | "password" | "invite";
     theme: { primary: string; deep: string; soft: string };
+    photo: string | null;
   };
   invites: { id: string; token: string; guestName: string; opens: number }[];
 };
@@ -88,7 +88,7 @@ export function SharePanel({ slug, origin, registry, invites }: Props) {
         </Card>
       )}
 
-      <ShareCard url={url} couple={couple} registry={registry} inviteOnly={inviteOnly} />
+      <QrStudio url={url} registry={registry} inviteOnly={inviteOnly} />
 
       <p className="text-center text-[15px] text-secondary">
         {tr("Want more privacy?", "और निजता चाहिए?")}{" "}
@@ -178,192 +178,4 @@ function InviteManager({ slug, base, invites, message }: { slug: string; base: s
       )}
     </Card>
   );
-}
-
-// ── Share card (drawn on canvas so Hindi names render with real fonts) ─
-
-const W = 1080;
-const H = 1350;
-
-function ShareCard({ url, couple, registry, inviteOnly }: { url: string; couple: string; registry: Props["registry"]; inviteOnly: boolean }) {
-  const tr = useTr();
-  const lang = useLang();
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [ready, setReady] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      await document.fonts?.ready;
-      const ctx = canvas.getContext("2d");
-      if (!ctx || cancelled) return;
-      const { primary, deep } = registry.theme;
-      const sans = "Mukta, 'Noto Sans Devanagari', sans-serif";
-      const serif = "Fraunces, Mukta, Georgia, serif";
-
-      // Backdrop
-      const g = ctx.createLinearGradient(0, 0, 0, H);
-      g.addColorStop(0, primary);
-      g.addColorStop(1, deep);
-      ctx.fillStyle = g;
-      ctx.fillRect(0, 0, W, H);
-
-      // Double gold frame
-      ctx.strokeStyle = "#f2c76b";
-      ctx.lineWidth = 4;
-      roundRect(ctx, 40, 40, W - 80, H - 80, 36);
-      ctx.stroke();
-      ctx.lineWidth = 1.5;
-      ctx.globalAlpha = 0.6;
-      roundRect(ctx, 58, 58, W - 116, H - 116, 26);
-      ctx.stroke();
-      ctx.globalAlpha = 1;
-
-      // String of lights
-      ctx.strokeStyle = "rgba(255,255,255,.4)";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(110, 70);
-      ctx.quadraticCurveTo(W / 2, 150, W - 110, 70);
-      ctx.stroke();
-      for (let i = 0; i < 15; i++) {
-        const t = (i + 0.5) / 15;
-        const x = 110 + t * (W - 220);
-        const y = (1 - t) * (1 - t) * 70 + 2 * (1 - t) * t * 150 + t * t * 70;
-        ctx.fillStyle = "rgba(255,255,255,.6)";
-        ctx.fillRect(x - 5, y, 10, 9);
-        ctx.fillStyle = i % 3 === 1 ? "#fff3dc" : "#f2a31b";
-        ctx.beginPath();
-        ctx.ellipse(x, y + 24, 10, 14, 0, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      ctx.textAlign = "center";
-      ctx.fillStyle = "#f6d998";
-      ctx.font = `600 34px ${sans}`;
-      const latin = /^[\x00-\x7F]*$/.test(registry.greeting);
-      drawSpaced(ctx, latin ? registry.greeting.toUpperCase() : registry.greeting, W / 2, 240, latin ? 10 : 2);
-
-      ctx.fillStyle = "#fff";
-      const [a, b] = [registry.partnerOne, registry.partnerTwo];
-      const oneLine = `${a} & ${b}`;
-      ctx.font = `600 96px ${serif}`;
-      if (ctx.measureText(oneLine).width <= W - 200) {
-        ctx.fillText(oneLine, W / 2, 380);
-      } else {
-        fitText(ctx, a, W / 2, 330, W - 200, 96, serif);
-        ctx.fillStyle = "#f6d998";
-        ctx.font = `500 56px ${serif}`;
-        ctx.fillText("&", W / 2, 400);
-        ctx.fillStyle = "#fff";
-        fitText(ctx, b, W / 2, 490, W - 200, 96, serif);
-      }
-      const below = ctx.measureText(oneLine).width <= W - 200 ? 450 : 560;
-      ctx.font = `500 38px ${sans}`;
-      ctx.fillStyle = "rgba(255,255,255,.85)";
-      const sub = [registry.dateText, registry.city].filter(Boolean).join("  ·  ");
-      if (sub) ctx.fillText(sub, W / 2, below);
-
-      // QR plate
-      const size = 440;
-      const qx = (W - size) / 2;
-      const qy = 640;
-      ctx.fillStyle = "#fff9f1";
-      roundRect(ctx, qx - 36, qy - 36, size + 72, size + 72, 40);
-      ctx.fill();
-      const qr = document.createElement("canvas");
-      await QRCode.toCanvas(qr, url, { width: size, margin: 0, errorCorrectionLevel: "M", color: { dark: deep, light: "#fff9f1" } });
-      if (cancelled) return;
-      ctx.drawImage(qr, qx, qy, size, size);
-
-      ctx.fillStyle = "#fff";
-      ctx.font = `600 44px ${sans}`;
-      ctx.fillText(lang === "hi" ? "स्कैन करें · आशीर्वाद भेजें" : "Scan to bless the couple", W / 2, 1195);
-      ctx.fillStyle = "rgba(255,255,255,.7)";
-      ctx.font = `500 30px ${sans}`;
-      ctx.fillText(lang === "hi" ? "तोहफ़ों की सूची और UPI से उपहार · Giftr" : "Gift wishlist & UPI gifts · Giftr", W / 2, 1250);
-      setReady(true);
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [url, lang, registry]);
-
-  const blob = () => new Promise<Blob | null>((res) => canvasRef.current?.toBlob(res, "image/png"));
-
-  const download = async () => {
-    const b = await blob();
-    if (!b) return;
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(b);
-    a.download = `giftr-${couple.replace(/[^\p{L}\p{N}]+/gu, "-")}.png`;
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(a.href), 2000);
-  };
-
-  const share = async () => {
-    const b = await blob();
-    if (!b) return;
-    const file = new File([b], "giftr-card.png", { type: "image/png" });
-    if (navigator.canShare?.({ files: [file] })) {
-      try {
-        await navigator.share({ files: [file], title: couple, text: url });
-      } catch {
-        /* user cancelled */
-      }
-    } else download();
-  };
-
-  return (
-    <Card padding={5}>
-      <Heading level={2}>{tr("Card with QR code", "QR कोड वाला कार्ड")}</Heading>
-      {inviteOnly ? (
-        <div className="mt-2">
-          <Banner
-            status="info"
-            collapsible={false}
-            title={tr("Your registry is invite-only", "आपकी रजिस्ट्री सिर्फ़ आमंत्रितों के लिए है")}
-            description={tr("This QR opens only for people who already used their invite link.", "यह QR उन्हीं के लिए खुलेगा जिन्होंने अपना आमंत्रण लिंक खोला है।")}
-          />
-        </div>
-      ) : (
-        <Text as="p" type="supporting" display="block">
-          {tr("Send it on WhatsApp, print it on your invitation, or keep it at the gift table.", "WhatsApp पर भेजें, निमंत्रण पत्र पर छापें, या उपहार की मेज़ पर रखें।")}
-        </Text>
-      )}
-      <canvas ref={canvasRef} width={W} height={H} className="mx-auto mt-4 w-full max-w-xs rounded-2xl shadow-md" role="img" aria-label={tr(`Share card for ${couple} with QR code`, `${couple} का QR कोड वाला कार्ड`)} />
-      <div className="mt-4 grid grid-cols-2 gap-2.5">
-        <Button variant="primary" width="100%" isDisabled={!ready} label={tr("Share card", "कार्ड भेजें")} icon={<Icon icon={Share2} />} onClick={share} />
-        <Button width="100%" isDisabled={!ready} label={tr("Download", "डाउनलोड")} icon={<Icon icon={Download} />} onClick={download} />
-      </div>
-    </Card>
-  );
-}
-
-function roundRect(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number) {
-  ctx.beginPath();
-  ctx.moveTo(x + r, y);
-  ctx.arcTo(x + w, y, x + w, y + h, r);
-  ctx.arcTo(x + w, y + h, x, y + h, r);
-  ctx.arcTo(x, y + h, x, y, r);
-  ctx.arcTo(x, y, x + w, y, r);
-  ctx.closePath();
-}
-
-function fitText(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, maxW: number, size: number, family: string) {
-  let s = size;
-  do {
-    ctx.font = `600 ${s}px ${family}`;
-    s -= 4;
-  } while (ctx.measureText(text).width > maxW && s > 36);
-  ctx.fillText(text, x, y);
-}
-
-function drawSpaced(ctx: CanvasRenderingContext2D, text: string, x: number, y: number, spacing: number) {
-  const c = ctx as CanvasRenderingContext2D & { letterSpacing?: string };
-  if ("letterSpacing" in c) c.letterSpacing = `${spacing}px`;
-  ctx.fillText(text, x, y);
-  if ("letterSpacing" in c) c.letterSpacing = "0px";
 }

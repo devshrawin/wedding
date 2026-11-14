@@ -10,11 +10,12 @@ import { Field } from "@astryxdesign/core/Field";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { ArrowLeft, Check, Mail, PartyPopper, CreditCard, HandHeart, ShieldCheck, Smartphone, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Mail, CreditCard, HandHeart, ShieldCheck, Smartphone, Sparkles } from "lucide-react";
 import { confirmRazorpay, contribute, startRazorpay } from "@/app/actions/guest";
 import { useTr } from "@/components/lang";
 import { CopyButton, toast } from "@/components/ui/feedback";
 import { AmountChips, PhotoPicker } from "@/components/ui/kit";
+import { SuccessMark, celebrate } from "@/components/motion";
 import { Sheet } from "@/components/ui/sheet";
 import { errorText } from "@/lib/result";
 import { buildUpiLink, inr, shagunSuggestions, toShagunAmount } from "@/lib/utils";
@@ -90,7 +91,7 @@ export function ShagunSheet({
   useEffect(() => {
     if (step !== "upi" || !upiLink) return;
     let live = true;
-    QRCode.toDataURL(upiLink, { width: 440, margin: 1, errorCorrectionLevel: "M" }).then((d) => live && setQr(d));
+    QRCode.toDataURL(upiLink, { width: 480, margin: 4, errorCorrectionLevel: "M" }).then((d) => live && setQr(d));
     return () => {
       live = false;
     };
@@ -100,6 +101,7 @@ export function ShagunSheet({
     saveGuest(guest);
     setDoneMethod(method);
     setStep("done");
+    if (method !== "cash") celebrate();
     router.refresh();
   };
 
@@ -244,8 +246,19 @@ export function ShagunSheet({
                 </div>
               )}
               <p className="mt-4 text-[15px] font-semibold text-primary">{touch ? tr("or scan from another phone", "या दूसरे फ़ोन से स्कैन करें") : tr("Scan with any UPI app", "किसी भी UPI ऐप से स्कैन करें")}</p>
-              <div className="mx-auto mt-2 grid size-52 place-items-center rounded-xl border border-border bg-white p-2">
-                {qr ? <img src={qr} alt={tr("UPI QR code", "UPI QR कोड")} className="size-full" /> : <span className="size-6 animate-spin rounded-full border-2 border-[var(--color-accent)] border-r-transparent" />}
+              {/* Payment codes stay plain black-on-white (bank apps are the fussiest scanners); only the frame is styled. */}
+              <div className="relative mx-auto mt-3 w-60 rounded-2xl bg-[var(--color-accent)] p-2.5 pb-2 shadow-md">
+                <div className="grid aspect-square place-items-center rounded-xl bg-white p-2">
+                  {qr ? (
+                    <img src={qr} alt={tr("UPI QR code", "UPI QR कोड")} className="size-full animate-fade" />
+                  ) : (
+                    <span className="size-6 animate-spin rounded-full border-2 border-[var(--color-accent)] border-r-transparent" />
+                  )}
+                </div>
+                <p className="mt-1.5 flex items-center justify-between px-1 text-[13px] font-semibold text-white">
+                  <span className="truncate">{couple}</span>
+                  <span className="shrink-0 rounded-full bg-white/20 px-2">{inr(amount)}</span>
+                </p>
               </div>
               <Text type="supporting">PhonePe · Google Pay · Paytm · BHIM</Text>
               <div className="mt-3 flex justify-center">
@@ -274,10 +287,14 @@ export function ShagunSheet({
 
       {step === "done" && (
         <div className="pb-2 text-center">
-          <span className="mx-auto grid size-16 place-items-center rounded-full bg-brand-soft text-accent" aria-hidden>
-            {doneMethod === "cash" ? <Mail className="size-8" /> : <PartyPopper className="size-8" />}
-          </span>
-          <p className="mt-3 font-display text-4xl font-semibold text-accent">{inr(amount)}</p>
+          {doneMethod === "cash" ? (
+            <span className="mx-auto grid size-16 animate-pop place-items-center rounded-full bg-brand-soft text-accent" aria-hidden>
+              <Mail className="size-8" />
+            </span>
+          ) : (
+            <SuccessMark className="mx-auto" />
+          )}
+          <p className="mt-3 animate-pop font-display text-4xl font-semibold text-accent">{inr(amount)}</p>
           <div className="mt-3">
             <Banner
               status={doneMethod === "razorpay" ? "success" : "info"}

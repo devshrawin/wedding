@@ -22,11 +22,11 @@ function IconTile({ name, size = "md" }: { name: string; size?: "md" | "lg" }) {
 export function FundPicker({ selected, onChange, giftWord = null }: { selected: string[]; onChange: (ids: string[]) => void; giftWord?: string | null }) {
   const lang = useLang();
   return (
-    <div className="grid gap-2.5 sm:grid-cols-2">
-      {FUND_TEMPLATES.map((f) => {
+    <div className="stagger grid gap-2.5 sm:grid-cols-2">
+      {FUND_TEMPLATES.map((f, n) => {
         const title = fundTitle(f, lang, giftWord);
         return (
-          <SelectableCard key={f.id} label={title} isSelected={selected.includes(f.id)} onChange={() => onChange(toggle(selected, f.id))} padding={3}>
+          <div key={f.id} style={{ "--i": n } as React.CSSProperties}><SelectableCard label={title} isSelected={selected.includes(f.id)} onChange={() => onChange(toggle(selected, f.id))} padding={3}>
             <div className="flex items-center gap-3 pr-6">
               <IconTile name={f.icon} />
               <span className="min-w-0">
@@ -36,7 +36,7 @@ export function FundPicker({ selected, onChange, giftWord = null }: { selected: 
                 </Text>
               </span>
             </div>
-          </SelectableCard>
+          </SelectableCard></div>
         );
       })}
     </div>

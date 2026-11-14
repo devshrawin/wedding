@@ -8,6 +8,7 @@ import { ProgressBar } from "@astryxdesign/core/ProgressBar";
 import { Check, ChevronRight, Gift, HandCoins, PartyPopper, Send } from "lucide-react";
 import { EntryList } from "@/components/entry-list";
 import { ItemThumb } from "@/components/ui/kit";
+import { Rupees } from "@/components/rupees";
 import { getManagedRegistry, requireUser } from "@/lib/auth";
 import { loadRegistryData } from "@/lib/data";
 import { buildEntries } from "@/lib/entries";
@@ -54,7 +55,7 @@ export default async function Overview({ params, searchParams }: { params: Promi
           <div className="flex items-start justify-between gap-3">
             <div>
               <p className="text-[15px] font-semibold text-secondary">{tr("Total blessings received", "कुल मिला आशीर्वाद")}</p>
-              <p className="mt-1 font-display text-5xl font-semibold tracking-tight text-primary">{inr(stats.totalReceived) || "₹0"}</p>
+              <p className="mt-1 font-display text-5xl font-semibold tracking-tight text-primary"><Rupees value={stats.totalReceived} /></p>
             </div>
             {days != null && days >= 0 && (
               <div className="rounded-xl bg-brand-soft px-3 py-2 text-center">
@@ -65,8 +66,8 @@ export default async function Overview({ params, searchParams }: { params: Promi
           </div>
           <dl className="mt-5 grid grid-cols-3 gap-2 text-center">
             {[
-              { v: inr(stats.cashReceived) || "₹0", l: tr("Cash", "नकद") },
-              { v: inr(stats.giftsValue) || "₹0", l: tr("Gifts", "तोहफ़े") },
+              { v: <Rupees value={stats.cashReceived} />, l: tr("Cash", "नकद") },
+              { v: <Rupees value={stats.giftsValue} />, l: tr("Gifts", "तोहफ़े") },
               { v: String(stats.guests), l: tr("Guests", "मेहमान") },
             ].map((s) => (
               <div key={s.l} className="rounded-xl bg-muted px-2 py-3">
@@ -98,9 +99,9 @@ export default async function Overview({ params, searchParams }: { params: Promi
           <Heading level={2}>{tr("Finish setting up", "सेटअप पूरा करें")}</Heading>
           <div className="mt-3">
             <Card padding={0}>
-              <ul className="divide-y divide-[var(--color-border)]">
-                {checklist.map((c) => (
-                  <li key={c.href}>
+              <ul className="stagger divide-y divide-[var(--color-border)]">
+                {checklist.map((c, n) => (
+                  <li key={c.href} style={{ "--i": n } as React.CSSProperties}>
                     <Link href={c.href} className="flex min-h-16 items-center gap-3 p-4 transition-colors hover:bg-muted">
                       <span className={cn("grid size-10 shrink-0 place-items-center rounded-full", c.done ? "bg-[var(--color-success)] text-white" : "bg-brand-soft text-accent")}>
                         {c.done ? <Check className="size-5" aria-hidden /> : <c.icon className="size-5" aria-hidden />}
@@ -163,9 +164,9 @@ export default async function Overview({ params, searchParams }: { params: Promi
           </div>
           <div className="mt-3">
             <Card padding={0}>
-              <ul className="divide-y divide-[var(--color-border)]">
-                {needed.map((i) => (
-                  <li key={i.id} className="flex items-center gap-3 p-3">
+              <ul className="stagger divide-y divide-[var(--color-border)]">
+                {needed.map((i, n) => (
+                  <li key={i.id} className="flex items-center gap-3 p-3" style={{ "--i": n } as React.CSSProperties}>
                     <ItemThumb imageUrl={i.imageUrl} icon={i.icon} className="size-14 shrink-0 text-[13px]" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-primary">{i.title}</p>

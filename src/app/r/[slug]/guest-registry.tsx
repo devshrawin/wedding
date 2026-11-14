@@ -18,6 +18,7 @@ import { reserveItem, updateMyReservation } from "@/app/actions/guest";
 import { useLang, useTr } from "@/components/lang";
 import { toast } from "@/components/ui/feedback";
 import { ItemThumb } from "@/components/ui/kit";
+import { GiftOpen, celebrate } from "@/components/motion";
 import { Sheet } from "@/components/ui/sheet";
 import { CATEGORIES, categoryOf } from "@/lib/catalog";
 import { GiftIcon } from "@/components/icons";
@@ -150,9 +151,9 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName, g
           <Text as="p" type="supporting" display="block">
             {tr("Give any amount, straight to the couple by UPI.", "कोई भी राशि दें, UPI से सीधे जोड़े को।")}
           </Text>
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {funds.map((f) => (
-              <li key={f.id}>
+          <ul className="stagger mt-4 grid gap-3 sm:grid-cols-2">
+            {funds.map((f, n) => (
+              <li key={f.id} style={{ "--i": n } as React.CSSProperties}>
                 <Card padding={4} minHeight="100%">
                   <div className="flex h-full flex-col">
                     <div className="flex items-start gap-3">
@@ -214,17 +215,17 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName, g
           </div>
 
           {shown.length ? (
-            <ul className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {shown.map((p) => {
+            <ul className="stagger mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+              {shown.map((p, n) => {
                 const gone = p.state !== "available" && !p.mine;
                 return (
-                  <li key={p.id}>
+                  <li key={p.id} style={{ "--i": n } as React.CSSProperties}>
                     <button
                       type="button"
                       onClick={() => setOpenItem(p.id)}
                       aria-label={`${p.title}${p.price ? `, ${inr(p.price)}` : ""}${gone ? `, ${tr("already gifted", "पहले से चुना गया")}` : ""}`}
                       className={cn(
-                        "flex h-full w-full flex-col overflow-hidden rounded-[var(--radius-container)] border border-border bg-surface text-left shadow-sm transition-transform active:scale-[0.98]",
+                        "press lift flex h-full w-full flex-col overflow-hidden rounded-[var(--radius-container)] border border-border bg-surface text-left shadow-sm",
                         gone && "opacity-55",
                       )}
                     >
@@ -317,6 +318,7 @@ function ItemSheet({ slug, item, guestName, onClose, onChipIn }: { slug: string;
       }
       saveGuest(guest);
       setStep("done");
+      celebrate();
       router.refresh();
     });
 
@@ -437,9 +439,7 @@ function ItemSheet({ slug, item, guestName, onClose, onChipIn }: { slug: string;
 
       {step === "done" && (
         <div className="pb-2 text-center">
-          <span className="mx-auto grid size-16 place-items-center rounded-full bg-brand-soft text-accent" aria-hidden>
-            <Gift className="size-8" />
-          </span>
+          <GiftOpen className="mx-auto" />
           <Text as="p" type="large" display="block" justify="center">
             {tr("We've marked it as reserved, so nobody else will bring the same gift.", "हमने इसे आपके नाम कर दिया है, ताकि कोई और वही तोहफ़ा न लाए।")}
           </Text>

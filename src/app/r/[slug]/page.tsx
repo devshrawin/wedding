@@ -122,16 +122,27 @@ export default async function GuestPage({ params }: Params) {
       )}
 
       <header className="bg-dots relative overflow-hidden bg-[var(--color-accent)] px-4 pb-12 pt-4 text-center text-white">
+        {registry.ambient && (
+          <div className="pointer-events-none absolute inset-0" aria-hidden>
+            {[8, 22, 37, 51, 66, 79, 91].map((left, n) => (
+              <span
+                key={left}
+                className="petal"
+                style={{ left: `${left}%`, "--d": `${11 + (n % 3) * 3}s`, "--delay": `${-n * 1.9}s`, "--x": `${n % 2 ? -30 : 34}px` } as React.CSSProperties}
+              />
+            ))}
+          </div>
+        )}
         <div className="relative mx-auto flex max-w-2xl justify-end">
           <span className="rounded-full bg-white/95">
             <LangToggle />
           </span>
         </div>
         <div className="relative mx-auto max-w-2xl">
-          <Lights className="mx-auto mt-2 h-6 w-56 text-white" />
+          <Lights className="mx-auto mt-2 h-6 w-56 text-white" mode={registry.ambient ? "loop" : "once"} />
           {registry.photo ? <img src={registry.photo} alt={tr(`${registry.partnerOne} and ${registry.partnerTwo}`, `${registry.partnerOne} और ${registry.partnerTwo}`)} className="mx-auto mt-5 size-32 rounded-full border-4 border-white/90 object-cover shadow-lg" /> : null}
           <p className={/^[\x00-\x7F]*$/.test(greeting) ? "mt-5 text-[13px] font-bold uppercase tracking-[0.24em] text-white/80" : "mt-5 text-[17px] font-semibold text-white/85"}>{greeting}</p>
-          <h1 className="mt-2 font-display text-[2.6rem] font-semibold leading-tight text-white sm:text-5xl">
+          <h1 className="anim-page mt-2 font-display text-[2.6rem] font-semibold leading-tight text-white sm:text-5xl">
             {registry.partnerOne} <span className="text-marigold">&</span> {registry.partnerTwo}
           </h1>
           {(registry.weddingDate || registry.city) && <p className="mt-2 text-lg text-white/90">{[formatDate(registry.weddingDate, lang), registry.city].filter(Boolean).join(" · ")}</p>}

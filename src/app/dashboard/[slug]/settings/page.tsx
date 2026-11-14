@@ -42,6 +42,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
           showAmounts: registry.showAmounts,
           upiId: registry.upiId ?? "",
           upiName: registry.upiName ?? "",
+          ambient: registry.ambient,
           ceremony: {
             tradition: registry.tradition as Tradition,
             greeting: registry.greeting ?? "",

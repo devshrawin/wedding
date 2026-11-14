@@ -10,7 +10,7 @@ export function PageShell({ children, width = "md", logoHref = "/" }: { children
         <Logo href={logoHref} />
         <LangToggle />
       </header>
-      <main className={cn("mx-auto px-4 pb-16 sm:px-6", width === "md" ? "max-w-md" : "max-w-2xl")}>{children}</main>
+      <main className={cn("anim-page mx-auto px-4 pb-16 sm:px-6", width === "md" ? "max-w-md" : "max-w-2xl")}>{children}</main>
     </div>
   );
 }

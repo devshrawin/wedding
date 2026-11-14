@@ -1,0 +1,1 @@
+ALTER TABLE "registries" ADD COLUMN "ambient" boolean DEFAULT false NOT NULL;

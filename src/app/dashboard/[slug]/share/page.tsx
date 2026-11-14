@@ -30,6 +30,7 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
         city: registry.city,
         visibility: registry.visibility as "link" | "password" | "invite",
         theme: { primary: theme.primary, deep: theme.deep, soft: theme.soft },
+        photo: registry.photo,
       }}
       invites={invites.map((i) => ({ id: i.id, token: i.token, guestName: i.guestName, opens: i.opens }))}
     />

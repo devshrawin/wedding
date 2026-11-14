@@ -106,6 +106,7 @@ export async function createRegistry(input: z.input<typeof createSchema>): Promi
 
 const detailsSchema = createSchema.pick({ partnerOne: true, partnerTwo: true, weddingDate: true, city: true, note: true, theme: true }).extend({
   photo: photo.or(z.literal("keep")),
+  ambient: z.boolean().optional(),
 });
 
 export async function updateDetails(slug: string, input: z.input<typeof detailsSchema>): Promise<Result> {

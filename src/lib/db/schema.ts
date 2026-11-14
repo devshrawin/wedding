@@ -46,6 +46,8 @@ export const registries = pgTable("registries", {
   greeting: text("greeting"),
   ledgerHeading: text("ledger_heading"),
   giftWord: text("gift_word"),
+  // opt-in: drifting petals and twinkling lights on the guest page header
+  ambient: boolean("ambient").notNull().default(false),
   // privacy
   visibility: text("visibility").notNull().default("link"), // link | password | invite
   passwordHash: text("password_hash"),

@@ -239,8 +239,7 @@ assert.equal(anonCsv.status(), 404, "ledger csv must be private");
 
 step("share page");
 await cp.goto(`${BASE}/dashboard/${slug}/share`);
-await cp.getByRole("button", { name: "Share card" }).waitFor();
-await cp.waitForFunction(() => !document.querySelector("canvas")?.closest("section")?.querySelector("button[disabled]"));
+await cp.locator('canvas[data-ready="1"]').waitFor({ timeout: 15000 });
 await shot(cp, "share");
 await audit(cp, "share");
 

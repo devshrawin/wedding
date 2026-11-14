@@ -42,12 +42,12 @@ export function EntryList({ slug, entries, couple, compact, giftWord = null }: {
 
   return (
     <>
-      <ul className={cn("space-y-3", pending && "opacity-70")}>
-        {entries.map((e) => {
+      <ul className={cn("stagger space-y-3", pending && "opacity-70")}>
+        {entries.map((e, n) => {
           const isPending = e.kind === "contribution" && e.status === "pending";
           const rejected = e.status === "rejected";
           return (
-            <li key={e.kind + e.id}>
+            <li key={e.kind + e.id} style={{ "--i": n } as React.CSSProperties}>
               <Card padding={4}>
                 <div className={cn("flex items-start gap-3", rejected && "opacity-60")}>
                   <div className={cn("grid size-11 shrink-0 place-items-center rounded-full", e.method === "gift" ? "bg-[var(--color-background-green)] text-leaf" : "bg-brand-soft text-accent")}>
@@ -93,7 +93,7 @@ export function EntryList({ slug, entries, couple, compact, giftWord = null }: {
                     <div className="mt-3 flex items-center gap-2">
                       {e.thanked ? (
                         <span className="inline-flex h-10 flex-1 items-center gap-1.5 text-[15px] font-semibold text-leaf">
-                          <Heart className="size-4 fill-current" aria-hidden /> {tr("Thanked", "धन्यवाद भेजा")}
+                          <Heart className="size-4 animate-pop fill-current" aria-hidden /> {tr("Thanked", "धन्यवाद भेजा")}
                         </span>
                       ) : (
                         <div className="flex-1">

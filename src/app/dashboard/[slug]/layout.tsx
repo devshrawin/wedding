@@ -8,6 +8,7 @@ import { getManagedRegistry, requireUser } from "@/lib/auth";
 import { loadRegistryData } from "@/lib/data";
 import { getTr } from "@/lib/i18n";
 import { registryThemeStyle } from "@/lib/theme-style";
+import { PageAnim } from "@/components/page-anim";
 import { DashboardNav } from "./nav";
 
 export const metadata = { title: "Dashboard", robots: { index: false } };
@@ -38,7 +39,9 @@ export default async function DashboardLayout({ children, params }: { children: 
         </div>
       </header>
       <DashboardNav slug={registry.slug} pending={stats.pendingCount} />
-      <main className="mx-auto max-w-3xl px-4 pt-6">{children}</main>
+      <main className="mx-auto max-w-3xl px-4 pt-6">
+        <PageAnim>{children}</PageAnim>
+      </main>
     </div>
   );
 }
