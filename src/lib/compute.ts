@@ -132,6 +132,8 @@ export function thankYouNote(p: {
   word?: string | null;
 }): string {
   const name = p.guest?.trim();
+  // The default "Gifts & blessings" fund reads oddly in a sentence; leave it out.
+  if (p.fund && /blessings|आशीर्वाद/i.test(p.fund)) p = { ...p, fund: null };
   const amt = p.amount ? "₹" + p.amount.toLocaleString("en-IN") : null;
   if (p.lang === "hi") {
     const hello = name ? `${name} जी,` : "नमस्ते,";

@@ -192,3 +192,11 @@ test("couples can name their own sections", () => {
   assert.equal(categoryOf("kitchen").en, "Kitchen");
   assert.equal(categoryOf("nonsense").key, "other");
 });
+
+test("preset words follow the reader's language; the couple's own words don't change", () => {
+  assert.equal(greetingFor({ greeting: "Shubh Vivah" }, "hi"), "॥ शुभ विवाह ॥");
+  assert.equal(greetingFor({ greeting: "निकाह मुबारक" }, "en"), "Nikah Mubarak");
+  assert.equal(giftWordFor({ giftWord: "Shagun" }, "hi"), "शगुन");
+  assert.equal(giftWordFor({ giftWord: "Salami" }, "hi"), "Salami");
+  assert.equal(greetingFor({ greeting: "Two hearts, one home" }, "hi"), "Two hearts, one home");
+});

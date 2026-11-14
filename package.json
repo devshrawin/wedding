@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "test": "node --import tsx --test tests/unit.test.ts && node --conditions=react-server --import tsx --test tests/backend.test.ts",
-    "test:e2e": "node tests/e2e.mjs"
+    "test:e2e": "node tests/e2e.mjs",
+    "screens": "node tests/screens.mjs"
   },
   "dependencies": {
     "@astryxdesign/core": "^0.7.15",

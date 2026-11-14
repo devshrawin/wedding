@@ -107,6 +107,8 @@ export default async function GuestPage({ params }: Params) {
     .filter((i) => !(registry.hideReserved && i.state !== "available" && i.state !== "open" && !i.mine));
 
   const days = daysUntil(registry.weddingDate);
+  // Letter-spacing suits Latin capitals but breaks joined scripts (Devanagari, Arabic, Gurmukhi).
+  const greeting = greetingFor(registry, lang);
 
   return (
     <div style={style} className="min-h-dvh bg-body">
@@ -128,7 +130,7 @@ export default async function GuestPage({ params }: Params) {
         <div className="relative mx-auto max-w-2xl">
           <Lights className="mx-auto mt-2 h-6 w-56 text-white" />
           {registry.photo ? <img src={registry.photo} alt={tr(`${registry.partnerOne} and ${registry.partnerTwo}`, `${registry.partnerOne} और ${registry.partnerTwo}`)} className="mx-auto mt-5 size-32 rounded-full border-4 border-white/90 object-cover shadow-lg" /> : null}
-          <p className="mt-5 text-[13px] font-bold uppercase tracking-[0.24em] text-white/80">{greetingFor(registry, lang)}</p>
+          <p className={/^[\x00-\x7F]*$/.test(greeting) ? "mt-5 text-[13px] font-bold uppercase tracking-[0.24em] text-white/80" : "mt-5 text-[17px] font-semibold text-white/85"}>{greeting}</p>
           <h1 className="mt-2 font-display text-[2.6rem] font-semibold leading-tight text-white sm:text-5xl">
             {registry.partnerOne} <span className="text-marigold">&</span> {registry.partnerTwo}
           </h1>

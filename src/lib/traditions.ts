@@ -39,11 +39,20 @@ export function traditionOf(key: string | null | undefined): TraditionPreset {
 /** Default words when the couple hasn't written their own. */
 export const NEUTRAL_GREETING = { en: "We're getting married", hi: "हम शादी कर रहे हैं" };
 
+/** If the couple kept a preset word, show it in the reader's language; their own words stay as typed. */
+function localise(value: string, lang: "en" | "hi", pairs: ({ en: string; hi: string } | null)[]): string {
+  const v = value.trim().toLowerCase();
+  const hit = pairs.find((p) => p && (p.en.toLowerCase() === v || p.hi === value.trim()));
+  return hit ? hit[lang] : value.trim();
+}
+
 export function greetingFor(r: { greeting: string | null }, lang: "en" | "hi"): string {
-  return r.greeting?.trim() || NEUTRAL_GREETING[lang];
+  if (!r.greeting?.trim()) return NEUTRAL_GREETING[lang];
+  return localise(r.greeting, lang, TRADITIONS.map((t) => t.greeting));
 }
 
 /** "Gift" / "Shagun" / whatever the couple typed. Used in buttons like "Send shagun". */
 export function giftWordFor(r: { giftWord: string | null }, lang: "en" | "hi"): string {
-  return r.giftWord?.trim() || GIFT[lang];
+  if (!r.giftWord?.trim()) return GIFT[lang];
+  return localise(r.giftWord, lang, TRADITIONS.map((t) => t.giftWord));
 }

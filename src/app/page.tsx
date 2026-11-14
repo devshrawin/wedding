@@ -12,7 +12,7 @@ import { getUser } from "@/lib/auth";
 import { getTr } from "@/lib/i18n";
 
 export default async function Landing() {
-  const [{ tr }, user] = await Promise.all([getTr(), getUser()]);
+  const [{ tr, lang }, user] = await Promise.all([getTr(), getUser()]);
   const cta = user ? "/dashboard" : "/new";
 
   const steps = [
@@ -88,7 +88,7 @@ export default async function Landing() {
             <div className="overflow-hidden rounded-[2rem] border border-border bg-surface shadow-lg">
               <div className="bg-dots relative bg-[var(--color-accent)] px-6 pb-8 pt-6 text-center text-white">
                 <Lights className="mx-auto h-5 w-44 text-white" />
-                <p className="mt-3 text-[12px] font-semibold uppercase tracking-[0.24em] text-white/75">{tr("We're getting married", "हम शादी कर रहे हैं")}</p>
+                <p className={lang === "hi" ? "mt-3 text-[15px] font-semibold text-white/80" : "mt-3 text-[12px] font-semibold uppercase tracking-[0.24em] text-white/75"}>{tr("We're getting married", "हम शादी कर रहे हैं")}</p>
                 <p className="mt-1 font-display text-[2rem] font-semibold leading-tight text-white">{tr("Ananya & Rohan", "अनन्या & रोहन")}</p>
                 <p className="mt-1 text-[15px] text-white/80">{tr("12 Feb 2027 · Jaipur", "12 फ़र. 2027 · जयपुर")}</p>
               </div>
