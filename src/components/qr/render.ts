@@ -313,7 +313,7 @@ export function renderCard(canvas: HTMLCanvasElement, m: QrMatrix, design: Desig
         ctx.fillStyle = soft;
         ctx.fillRect(0, 0, W, ph);
       }
-      top0 = ph - 60 * u;
+      top0 = ph - 90 * u;
     }
     if (design === "minimal") {
       ctx.save();
@@ -405,11 +405,12 @@ function archPath(ctx: CanvasRenderingContext2D, x: number, y: number, w: number
   ctx.closePath();
 }
 
+/** Fills the box with the image like CSS object-fit: cover, cropped to the box. */
 function coverImage(ctx: CanvasRenderingContext2D, img: HTMLImageElement, x: number, y: number, w: number, h: number) {
   const s = Math.max(w / img.naturalWidth, h / img.naturalHeight);
-  const iw = img.naturalWidth * s;
-  const ih = img.naturalHeight * s;
-  ctx.drawImage(img, x + (w - iw) / 2, y + (h - ih) / 2, iw, ih);
+  const sw = w / s;
+  const sh = h / s;
+  ctx.drawImage(img, (img.naturalWidth - sw) / 2, (img.naturalHeight - sh) / 2, sw, sh, x, y, w, h);
 }
 
 function setSpacing(ctx: CanvasRenderingContext2D, px: number) {

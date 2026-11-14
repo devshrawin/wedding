@@ -20,6 +20,10 @@ const step = (s) => console.log("•", s);
 const AXE = fs.readFileSync(createRequire(import.meta.url).resolve("axe-core/axe.min.js"), "utf8");
 const a11yProblems = [];
 async function audit(page, name) {
+  // Let entrance animations finish: half-faded text would read as low contrast.
+  await page.evaluate(() =>
+    Promise.all(document.getAnimations().filter((a) => a.effect?.getTiming().iterations !== Infinity).map((a) => a.finished.catch(() => {}))),
+  );
   await page.addScriptTag({ content: AXE });
   const res = await page.evaluate(async () =>
     (await axe.run(document, { runOnly: { type: "tag", values: ["wcag2a", "wcag2aa", "wcag21aa"] } })).violations.map((v) => ({
@@ -30,6 +34,9 @@ async function audit(page, name) {
     })),
   );
   const bad = res.filter((v) => v.impact === "serious" || v.impact === "critical");
+  // Phones must never scroll sideways.
+  const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+  if (overflow > 1) a11yProblems.push(`${name}: page is ${overflow}px wider than the screen`);
   for (const v of bad) a11yProblems.push(`${name}: [${v.impact}] ${v.id} — ${v.help} @ ${v.nodes.join(" | ")}`);
   const minor = res.length - bad.length;
   console.log(`  a11y ${name}: ${bad.length} serious/critical${minor ? `, ${minor} minor` : ""}`);

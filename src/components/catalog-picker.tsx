@@ -26,7 +26,7 @@ export function FundPicker({ selected, onChange, giftWord = null }: { selected: 
       {FUND_TEMPLATES.map((f, n) => {
         const title = fundTitle(f, lang, giftWord);
         return (
-          <div key={f.id} style={{ "--i": n } as React.CSSProperties}><SelectableCard label={title} isSelected={selected.includes(f.id)} onChange={() => onChange(toggle(selected, f.id))} padding={3}>
+          <div key={f.id} className="min-w-0" style={{ "--i": n } as React.CSSProperties}><SelectableCard label={title} isSelected={selected.includes(f.id)} onChange={() => onChange(toggle(selected, f.id))} padding={3}>
             <div className="flex items-center gap-3 pr-6">
               <IconTile name={f.icon} />
               <span className="min-w-0">

@@ -153,7 +153,7 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName, g
           </Text>
           <ul className="stagger mt-4 grid gap-3 sm:grid-cols-2">
             {funds.map((f, n) => (
-              <li key={f.id} style={{ "--i": n } as React.CSSProperties}>
+              <li key={f.id} className="min-w-0" style={{ "--i": n } as React.CSSProperties}>
                 <Card padding={4} minHeight="100%">
                   <div className="flex h-full flex-col">
                     <div className="flex items-start gap-3">
@@ -219,7 +219,7 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName, g
               {shown.map((p, n) => {
                 const gone = p.state !== "available" && !p.mine;
                 return (
-                  <li key={p.id} style={{ "--i": n } as React.CSSProperties}>
+                  <li key={p.id} className="min-w-0" style={{ "--i": n } as React.CSSProperties}>
                     <button
                       type="button"
                       onClick={() => setOpenItem(p.id)}
