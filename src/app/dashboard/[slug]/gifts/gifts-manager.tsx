@@ -2,16 +2,29 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { EyeOff, Link2, Pencil, Plus, Sparkles, Wallet } from "lucide-react";
-import { addFromCatalog, addItem, deleteItem, previewLink, updateItem, type ItemInput } from "@/app/actions/items";
+import { Badge } from "@astryxdesign/core/Badge";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
+import { ClickableCard } from "@astryxdesign/core/ClickableCard";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
+import { Field } from "@astryxdesign/core/Field";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Icon } from "@astryxdesign/core/Icon";
+import { ProgressBar } from "@astryxdesign/core/ProgressBar";
+import { Selector } from "@astryxdesign/core/Selector";
+import { Switch } from "@astryxdesign/core/Switch";
+import { TextArea } from "@astryxdesign/core/TextArea";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { EyeOff, Gift, Link2, PenLine, Plus, Sparkles, Wallet } from "lucide-react";
+import { addFromCatalog, addItem, deleteItem, previewLink, updateItem, uploadItemImage, type ItemInput } from "@/app/actions/items";
 import { EssentialsPicker, FundPicker } from "@/components/catalog-picker";
-import { ItemThumb } from "@/components/item-thumb";
 import { useLang, useTr } from "@/components/lang";
-import { Button } from "@/components/ui/button";
-import { Field, Progress, Switch, toast } from "@/components/ui/bits";
+import { toast } from "@/components/ui/feedback";
+import { ItemThumb, PhotoPicker } from "@/components/ui/kit";
 import { Sheet } from "@/components/ui/sheet";
 import { CATEGORIES } from "@/lib/catalog";
-import { errorText } from "@/lib/result";
+import { errorText, type ErrorCode } from "@/lib/result";
 import { cn, inr } from "@/lib/utils";
 
 export type ManagedItem = {
@@ -34,6 +47,7 @@ export type ManagedItem = {
   progress: number;
   fulfilled: boolean;
   givers: number;
+  chipInLeft: number | null;
 };
 
 type Draft = {
@@ -56,7 +70,7 @@ const emptyDraft = (kind: "product" | "fund"): Draft => ({
   title: "",
   description: "",
   imageUrl: "",
-  emoji: kind === "fund" ? "💝" : "",
+  emoji: kind === "fund" ? "💝" : "🎁",
   url: "",
   store: "",
   category: kind === "fund" ? "fund" : "other",
@@ -96,7 +110,7 @@ const fromItem = (i: ManagedItem): Draft => ({
   hidden: i.hidden,
 });
 
-type Mode = null | "menu" | "link" | "essentials" | "fund" | { edit: ManagedItem };
+type Mode = null | "menu" | "link" | "manual" | "essentials" | "fund" | { edit: ManagedItem };
 
 export function GiftsManager({ slug, items, openAdd }: { slug: string; items: ManagedItem[]; openAdd: boolean }) {
   const tr = useTr();
@@ -115,20 +129,20 @@ export function GiftsManager({ slug, items, openAdd }: { slug: string; items: Ma
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-3xl font-semibold">{tr("Your wishlist", "आपकी सूची")}</h1>
-        <Button onClick={() => setMode("menu")}>
-          <Plus className="size-5" /> {tr("Add", "जोड़ें")}
-        </Button>
+        <Heading level={1}>{tr("Your wishlist", "आपकी सूची")}</Heading>
+        <Button variant="primary" label={tr("Add", "जोड़ें")} icon={<Icon icon={Plus} />} onClick={() => setMode("menu")} />
       </div>
 
       {items.length === 0 ? (
-        <div className="card mt-6 p-8 text-center">
-          <p className="text-5xl" aria-hidden>🎁</p>
-          <h2 className="mt-3 text-2xl font-semibold">{tr("Nothing here yet", "अभी यहाँ कुछ नहीं है")}</h2>
-          <p className="mt-1 text-muted">{tr("Add gifts you'd love, or a fund for shagun.", "अपनी पसंद के तोहफ़े जोड़ें, या शगुन के लिए फंड बनाएँ।")}</p>
-          <Button className="mt-5" onClick={() => setMode("menu")}>
-            <Plus className="size-5" /> {tr("Add your first wish", "पहली पसंद जोड़ें")}
-          </Button>
+        <div className="mt-6">
+          <Card padding={6}>
+            <EmptyState
+              title={tr("Nothing here yet", "अभी यहाँ कुछ नहीं है")}
+              description={tr("Add gifts you'd love, or a fund for shagun.", "अपनी पसंद के तोहफ़े जोड़ें, या शगुन के लिए फंड बनाएँ।")}
+              icon={<Gift className="size-10 text-accent" />}
+              actions={<Button variant="primary" label={tr("Add your first wish", "पहली पसंद जोड़ें")} onClick={() => setMode("menu")} />}
+            />
+          </Card>
         </div>
       ) : (
         <div className="mt-6 space-y-8">
@@ -139,20 +153,22 @@ export function GiftsManager({ slug, items, openAdd }: { slug: string; items: Ma
             .filter((g) => g.list.length)
             .map((g) => (
               <section key={g.title}>
-                <h2 className="mb-3 font-sans text-[15px] font-bold uppercase tracking-wider text-muted">
+                <h2 className="mb-3 text-[13px] font-bold uppercase tracking-[0.12em] text-secondary">
                   {g.title} · {g.list.length}
                 </h2>
                 <ul className="space-y-2.5">
                   {g.list.map((i) => (
                     <li key={i.id}>
-                      <button type="button" onClick={() => setMode({ edit: i })} className={cn("card flex w-full items-center gap-3 p-3 text-left hover:bg-sand/40", i.hidden && "opacity-60")}>
-                        <ItemThumb imageUrl={i.imageUrl} emoji={i.emoji} className="size-16 shrink-0 text-[15px]" />
-                        <div className="min-w-0 flex-1">
-                          <p className="line-clamp-2 font-semibold leading-snug">{i.title}</p>
-                          <ItemStatus item={i} />
+                      <ClickableCard label={tr(`Edit ${i.title}`, `${i.title} बदलें`)} onClick={() => setMode({ edit: i })} padding={3}>
+                        <div className={cn("flex items-center gap-3", i.hidden && "opacity-60")}>
+                          <ItemThumb imageUrl={i.imageUrl} emoji={i.emoji} className="size-16 shrink-0 text-[15px]" />
+                          <div className="min-w-0 flex-1">
+                            <p className="line-clamp-2 font-semibold leading-snug text-primary">{i.title}</p>
+                            <ItemStatus item={i} />
+                          </div>
+                          <PenLine className="size-4 shrink-0 text-secondary" aria-hidden />
                         </div>
-                        <Pencil className="size-4 shrink-0 text-muted" />
-                      </button>
+                      </ClickableCard>
                     </li>
                   ))}
                 </ul>
@@ -161,33 +177,34 @@ export function GiftsManager({ slug, items, openAdd }: { slug: string; items: Ma
         </div>
       )}
 
-      {/* Add menu */}
       <Sheet open={mode === "menu"} onOpenChange={(o) => !o && close()} title={tr("Add to your wishlist", "सूची में जोड़ें")}>
         <div className="space-y-2.5 pb-2">
           {[
             { m: "link" as const, icon: Link2, t: tr("Paste a product link", "प्रोडक्ट का लिंक डालें"), d: tr("Amazon, Flipkart, Myntra, Pepperfry, Croma…", "Amazon, Flipkart, Myntra, Pepperfry, Croma…") },
-            { m: "essentials" as const, icon: Sparkles, t: tr("Pick from wedding essentials", "शादी के ज़रूरी सामान से चुनें"), d: tr("Mixer, cooker, bedsheets, pooja thali and more.", "मिक्सर, कुकर, बेडशीट, पूजा थाली और बहुत कुछ।") },
-            { m: "fund" as const, icon: Wallet, t: tr("Create a shagun fund", "शगुन फंड बनाएँ"), d: tr("Honeymoon, new home, fridge — guests give any amount.", "हनीमून, नया घर, फ्रिज — मेहमान कोई भी राशि दें।") },
+            { m: "manual" as const, icon: PenLine, t: tr("Add a gift yourself", "ख़ुद तोहफ़ा लिखें"), d: tr("Name, price and your own photo, from any shop.", "नाम, दाम और अपनी फ़ोटो, किसी भी दुकान का।") },
+            { m: "essentials" as const, icon: Sparkles, t: tr("Pick wedding essentials", "शादी का ज़रूरी सामान चुनें"), d: tr("Mixer, cooker, bedsheets, pooja thali and more.", "मिक्सर, कुकर, बेडशीट, पूजा थाली और बहुत कुछ।") },
+            { m: "fund" as const, icon: Wallet, t: tr("Open a shagun fund", "शगुन फंड खोलें"), d: tr("Honeymoon, new home, fridge. Guests give any amount.", "हनीमून, नया घर, फ्रिज, मेहमान कोई भी राशि दें।") },
           ].map((o) => (
-            <button key={o.m} type="button" onClick={() => setMode(o.m)} className="flex min-h-20 w-full items-center gap-4 rounded-2xl border border-line bg-white p-4 text-left hover:border-primary">
-              <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-primary-soft text-primary">
-                <o.icon className="size-6" />
-              </span>
-              <span>
-                <span className="block text-lg font-semibold leading-tight">{o.t}</span>
-                <span className="block text-[15px] text-muted">{o.d}</span>
-              </span>
-            </button>
+            <ClickableCard key={o.m} label={o.t} onClick={() => setMode(o.m)} padding={4}>
+              <div className="flex items-center gap-4">
+                <span className="grid size-12 shrink-0 place-items-center rounded-xl bg-brand-soft text-accent">
+                  <o.icon className="size-6" aria-hidden />
+                </span>
+                <span>
+                  <span className="block text-lg font-semibold leading-tight text-primary">{o.t}</span>
+                  <span className="block text-[15px] text-secondary">{o.d}</span>
+                </span>
+              </div>
+            </ClickableCard>
           ))}
         </div>
       </Sheet>
 
       {mode === "link" && <LinkSheet slug={slug} onClose={close} onDone={() => done(tr("Added to your wishlist", "सूची में जुड़ गया"))} />}
+      {mode === "manual" && <ManualSheet slug={slug} onClose={close} onDone={() => done(tr("Added to your wishlist", "सूची में जुड़ गया"))} />}
       {mode === "essentials" && <EssentialsSheet slug={slug} onClose={close} onDone={(n) => done(tr(`${n} added`, `${n} चीज़ें जुड़ गईं`))} />}
-      {mode === "fund" && <FundSheet slug={slug} onClose={close} onDone={(m) => done(m)} />}
-      {mode && typeof mode === "object" && (
-        <EditSheet slug={slug} item={mode.edit} onClose={close} onDone={(m) => done(m)} />
-      )}
+      {mode === "fund" && <FundSheet slug={slug} onClose={close} onDone={done} />}
+      {mode && typeof mode === "object" && <EditSheet slug={slug} item={mode.edit} onClose={close} onDone={done} />}
     </div>
   );
 }
@@ -196,115 +213,144 @@ function ItemStatus({ item: i }: { item: ManagedItem }) {
   const tr = useTr();
   if (i.hidden)
     return (
-      <p className="mt-0.5 inline-flex items-center gap-1.5 text-[15px] text-muted">
-        <EyeOff className="size-4" /> {tr("Hidden from guests", "मेहमानों से छिपा है")}
+      <p className="mt-0.5 inline-flex items-center gap-1.5 text-[15px] text-secondary">
+        <EyeOff className="size-4" aria-hidden /> {tr("Hidden from guests", "मेहमानों से छिपा है")}
       </p>
     );
-  if (i.kind === "fund" || i.raised > 0)
+  if (i.kind === "fund" || i.raised > 0 || i.allowChipIn)
     return (
-      <div className="mt-1.5">
-        {i.target ? <Progress value={i.progress} className="h-2" /> : null}
-        <p className="mt-1 text-[15px] text-muted">
-          {tr("Received", "मिला")} <span className="font-semibold text-ink">{inr(i.raised) || "₹0"}</span>
+      <div className="mt-1.5 space-y-1">
+        {i.target ? <ProgressBar label={tr("Received", "मिला")} isLabelHidden value={i.progress} /> : null}
+        <p className="text-[15px] text-secondary">
+          {tr("Received", "मिला")} <span className="font-semibold text-primary">{inr(i.raised) || "₹0"}</span>
           {i.target ? ` / ${inr(i.target)}` : ""}
+          {i.allowChipIn && !i.fulfilled && <> · {tr("guests chip in", "मेहमान मिलकर देंगे")}</>}
         </p>
       </div>
     );
   return (
-    <p className="mt-0.5 text-[15px] text-muted">
-      {i.price ? inr(i.price) : tr("No price", "दाम नहीं")}
-      {i.store && ` · ${i.store}`}
-      {i.quantity > 1 && ` · ×${i.quantity}`}
-      {i.reservedQty > 0 && (
-        <span className="ml-2 rounded-full bg-leaf-soft px-2 py-0.5 text-[13px] font-bold text-leaf">
-          {i.fulfilled ? tr("Reserved ✓", "चुन लिया गया ✓") : tr(`${i.reservedQty} reserved`, `${i.reservedQty} चुने गए`)}
-        </span>
-      )}
-    </p>
+    <div className="mt-1 flex flex-wrap items-center gap-2 text-[15px] text-secondary">
+      <span>
+        {i.price ? inr(i.price) : tr("No price", "दाम नहीं")}
+        {i.store && ` · ${i.store}`}
+        {i.quantity > 1 && ` · ×${i.quantity}`}
+      </span>
+      {i.reservedQty > 0 && <Badge variant="success" label={i.fulfilled ? tr("Reserved", "चुन लिया गया") : tr(`${i.reservedQty} reserved`, `${i.reservedQty} चुने गए`)} />}
+    </div>
   );
 }
 
 // ── Item form (shared by add + edit) ──────────────────────────────────
 
-function ItemForm({ draft, set, locked }: { draft: Draft; set: (p: Partial<Draft>) => void; locked?: boolean }) {
+function ItemForm({ slug, draft, set, locked }: { slug: string; draft: Draft; set: (p: Partial<Draft>) => void; locked?: boolean }) {
   const tr = useTr();
   const lang = useLang();
   const fund = draft.kind === "fund";
+  const upload = async (dataUrl: string) => {
+    const res = await uploadItemImage(slug, dataUrl);
+    if (!res.ok) return toast(errorText(res.error, tr), "error");
+    set({ imageUrl: res.path });
+  };
   return (
     <div className="space-y-4">
-      {!fund && (draft.imageUrl || draft.emoji) && (
-        <div className="flex items-center gap-3">
-          <ItemThumb key={draft.imageUrl} imageUrl={draft.imageUrl} emoji={draft.emoji} className="size-20 shrink-0" />
-          {draft.store && <p className="text-[15px] text-muted">{tr("From", "स्टोर:")} <span className="font-semibold text-ink">{draft.store}</span></p>}
-        </div>
-      )}
-      {fund && (
-        <div>
-          <span className="label">{tr("Icon", "आइकन")}</span>
-          <div className="flex flex-wrap gap-2">
+      {fund ? (
+        <Field label={tr("Icon", "आइकन")} inputID="fund-icon" isGroupLabel>
+          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={tr("Icon", "आइकन")}>
             {["💝", "✈️", "🏡", "🧊", "🛋️", "🪙", "🙏", "🚗", "📚", "🎶"].map((e) => (
-              <button key={e} type="button" aria-pressed={draft.emoji === e} onClick={() => set({ emoji: e })} className={cn("grid size-12 place-items-center rounded-2xl border-2 bg-white text-2xl", draft.emoji === e ? "border-primary" : "border-line")}>
+              <button
+                key={e}
+                type="button"
+                role="radio"
+                aria-checked={draft.emoji === e}
+                aria-label={e}
+                onClick={() => set({ emoji: e })}
+                className={cn("grid size-12 place-items-center rounded-xl border-2 bg-surface text-2xl", draft.emoji === e ? "border-[var(--color-accent)]" : "border-border")}
+              >
                 {e}
               </button>
             ))}
           </div>
-        </div>
-      )}
-      <Field label={fund ? tr("Fund name", "फंड का नाम") : tr("Gift name", "तोहफ़े का नाम")}>
-        <input className="input" value={draft.title} maxLength={140} onChange={(e) => set({ title: e.target.value })} placeholder={fund ? tr("Honeymoon Fund", "हनीमून फंड") : tr("Prestige Mixer Grinder 750W", "प्रेस्टीज मिक्सर ग्राइंडर 750W")} />
-      </Field>
-      <div className={cn("grid gap-3", !fund && "grid-cols-[1fr_7rem]")}>
-        <Field
-          label={fund ? tr("Goal amount", "लक्ष्य राशि") : tr("Price", "दाम")}
-          optional={fund}
-          hint={fund ? tr("Leave empty for an open shagun fund.", "खुले शगुन फंड के लिए खाली छोड़ दें।") : undefined}
-        >
-          <div className="relative">
-            <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted">₹</span>
-            <input className="input pl-9" inputMode="numeric" value={draft.price} onChange={(e) => set({ price: e.target.value.replace(/\D/g, "").slice(0, 8) })} placeholder="0" />
-          </div>
         </Field>
+      ) : (
+        <Field label={tr("Photo", "फ़ोटो")} inputID="item-photo" isOptional description={draft.store ? tr(`From ${draft.store}`, `${draft.store} से`) : undefined}>
+          <PhotoPicker label={tr("Choose gift photo", "तोहफ़े की फ़ोटो चुनें")} value={draft.imageUrl || null} onPick={upload} onRemove={() => set({ imageUrl: "" })} />
+        </Field>
+      )}
+      <TextInput
+        label={fund ? tr("Fund name", "फंड का नाम") : tr("Gift name", "तोहफ़े का नाम")}
+        width="100%"
+        value={draft.title}
+        onChange={(v) => set({ title: v.slice(0, 140) })}
+        placeholder={fund ? tr("Honeymoon Fund", "हनीमून फंड") : tr("Prestige Mixer Grinder 750W", "प्रेस्टीज मिक्सर ग्राइंडर 750W")}
+      />
+      <div className={cn("grid gap-3", !fund && "grid-cols-[1fr_7.5rem]")}>
+        <TextInput
+          label={fund ? tr("Goal amount (₹)", "लक्ष्य राशि (₹)") : tr("Price (₹)", "दाम (₹)")}
+          isOptional={fund}
+          description={fund ? tr("Leave empty for an open shagun fund.", "खुले शगुन फंड के लिए खाली छोड़ दें।") : undefined}
+          width="100%"
+          inputMode="numeric"
+          value={draft.price}
+          onChange={(v) => set({ price: v.replace(/\D/g, "").slice(0, 8) })}
+          placeholder="0"
+        />
         {!fund && (
-          <Field label={tr("Quantity", "संख्या")}>
-            <select className="input" value={draft.quantity} disabled={locked} onChange={(e) => set({ quantity: Number(e.target.value) })}>
-              {[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => (
-                <option key={n}>{n}</option>
-              ))}
-            </select>
-          </Field>
+          <Selector
+            label={tr("How many", "कितने")}
+            width="100%"
+            value={String(draft.quantity)}
+            isDisabled={locked}
+            disabledMessage={tr("Already reserved by a guest", "मेहमान चुन चुके हैं")}
+            options={[1, 2, 3, 4, 5, 6, 8, 10, 12].map((n) => ({ value: String(n), label: String(n) }))}
+            onChange={(v) => set({ quantity: Number(v) })}
+            presentation="adaptive"
+          />
         )}
       </div>
       {!fund && (
-        <Field label={tr("Category", "श्रेणी")}>
-          <select className="input" value={draft.category} onChange={(e) => set({ category: e.target.value })}>
-            {CATEGORIES.filter((c) => c.key !== "fund").map((c) => (
-              <option key={c.key} value={c.key}>
-                {c.emoji} {lang === "hi" ? c.hi : c.en}
-              </option>
-            ))}
-          </select>
-        </Field>
-      )}
-      <Field label={fund ? tr("Why this fund?", "यह फंड क्यों?") : tr("Note for guests", "मेहमानों के लिए नोट")} optional>
-        <textarea className="input" rows={2} maxLength={300} value={draft.description} onChange={(e) => set({ description: e.target.value })} placeholder={fund ? tr("Help us make memories on our first trip together.", "हमारी पहली यात्रा को यादगार बनाने में साथ दें।") : tr("Any colour is fine. We love the steel finish!", "कोई भी रंग चलेगा। स्टील फ़िनिश हमें पसंद है!")} />
-      </Field>
-      <div className="rounded-2xl border border-line bg-white px-4 py-1">
-        {!fund && draft.quantity === 1 && (
-          <Switch
-            checked={draft.allowChipIn && !!draft.price}
-            disabled={!draft.price}
-            onChange={(v) => set({ allowChipIn: v })}
-            label={tr("Let guests chip in", "मेहमान मिलकर दें")}
-            hint={tr("For big gifts — several guests can contribute any amount by UPI.", "बड़े तोहफ़ों के लिए — कई मेहमान UPI से थोड़ा-थोड़ा दे सकते हैं।")}
-          />
-        )}
-        <Switch
-          checked={draft.hidden}
-          onChange={(v) => set({ hidden: v })}
-          label={tr("Hide from guests", "मेहमानों से छिपाएँ")}
-          hint={tr("Keep it on your list, but don't show it on the guest page.", "सूची में रहे, पर मेहमानों वाले पेज पर न दिखे।")}
+        <Selector
+          label={tr("Category", "श्रेणी")}
+          width="100%"
+          value={draft.category}
+          options={CATEGORIES.filter((c) => c.key !== "fund").map((c) => ({ value: c.key, label: `${c.emoji} ${lang === "hi" ? c.hi : c.en}` }))}
+          onChange={(v) => set({ category: v })}
+          presentation="adaptive"
         />
-      </div>
+      )}
+      <TextArea
+        label={fund ? tr("Why this fund?", "यह फंड क्यों?") : tr("Note for guests", "मेहमानों के लिए नोट")}
+        isOptional
+        width="100%"
+        rows={2}
+        maxLength={300}
+        value={draft.description}
+        onChange={(v) => set({ description: v })}
+        placeholder={fund ? tr("Help us make memories on our first trip together.", "हमारी पहली यात्रा को यादगार बनाने में साथ दें।") : tr("Any colour is fine. We love the steel finish!", "कोई भी रंग चलेगा। स्टील फ़िनिश हमें पसंद है!")}
+      />
+      <Card variant="muted" padding={4}>
+        <div className="space-y-4">
+          {!fund && draft.quantity === 1 && (
+            <Switch
+              label={tr("Let guests chip in", "मेहमान मिलकर दें")}
+              description={tr("For big gifts, several guests pay part of it by UPI. Guests see how much is still needed.", "बड़े तोहफ़ों के लिए, कई मेहमान UPI से थोड़ा-थोड़ा दें। मेहमानों को दिखेगा कि कितना बाकी है।")}
+              labelSpacing="spread"
+              width="100%"
+              value={draft.allowChipIn && !!draft.price}
+              isDisabled={!draft.price}
+              disabledMessage={tr("Add a price first", "पहले दाम डालें")}
+              onChange={(v) => set({ allowChipIn: v })}
+            />
+          )}
+          <Switch
+            label={tr("Hide from guests", "मेहमानों से छिपाएँ")}
+            description={tr("Keep it on your list, but don't show it on the guest page.", "सूची में रहे, पर मेहमानों वाले पेज पर न दिखे।")}
+            labelSpacing="spread"
+            width="100%"
+            value={draft.hidden}
+            onChange={(v) => set({ hidden: v })}
+          />
+        </div>
+      </Card>
     </div>
   );
 }
@@ -312,7 +358,7 @@ function ItemForm({ draft, set, locked }: { draft: Draft; set: (p: Partial<Draft
 function useSave() {
   const tr = useTr();
   const [pending, start] = useTransition();
-  const save = (fn: () => Promise<{ ok: boolean; error?: Parameters<typeof errorText>[0] }>, onOk: () => void) =>
+  const save = (fn: () => Promise<{ ok: boolean; error?: ErrorCode }>, onOk: () => void) =>
     start(async () => {
       const res = await fn();
       if (!res.ok) toast(errorText(res.error ?? "server", tr), "error");
@@ -327,7 +373,7 @@ function LinkSheet({ slug, onClose, onDone }: { slug: string; onClose: () => voi
   const tr = useTr();
   const [url, setUrl] = useState("");
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [partial, setPartial] = useState(false);
+  const [partial, setPartial] = useState<"none" | "some" | "all">("none");
   const [fetching, startFetch] = useTransition();
   const { pending, save } = useSave();
 
@@ -340,13 +386,13 @@ function LinkSheet({ slug, onClose, onDone }: { slug: string; onClose: () => voi
         return;
       }
       const p = res.preview;
-      setPartial(!p.fetched || !p.price);
-      setDraft({ ...emptyDraft("product"), title: p.title ?? "", imageUrl: p.image ?? "", url: p.url, store: p.store, price: p.price ? String(p.price) : "", emoji: "🎁" });
+      setPartial(!p.fetched ? "all" : !p.price || !p.image ? "some" : "none");
+      setDraft({ ...emptyDraft("product"), title: p.title ?? "", imageUrl: p.image ?? "", url: p.url, store: p.store, price: p.price ? String(p.price) : "" });
     });
   };
 
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()} title={tr("Paste a product link", "प्रोडक्ट का लिंक डालें")} description={draft ? undefined : tr("Open the product in any shopping app → Share → Copy link → paste here.", "किसी भी शॉपिंग ऐप में प्रोडक्ट खोलें → शेयर → लिंक कॉपी करें → यहाँ डालें।")}>
+    <Sheet open onOpenChange={(o) => !o && onClose()} title={tr("Paste a product link", "प्रोडक्ट का लिंक डालें")} purpose="form" height={draft ? "tall" : "hug"}>
       {!draft ? (
         <form
           className="space-y-3 pb-2"
@@ -355,43 +401,58 @@ function LinkSheet({ slug, onClose, onDone }: { slug: string; onClose: () => voi
             fetchIt();
           }}
         >
-          <input
-            className="input"
-            type="text"
+          <TextInput
+            label={tr("Product link", "प्रोडक्ट लिंक")}
+            description={tr("In the shopping app: Share → Copy link, then paste here.", "शॉपिंग ऐप में: शेयर → लिंक कॉपी करें, फिर यहाँ डालें।")}
+            width="100%"
+            size="lg"
             inputMode="url"
-            autoFocus
+            autoCapitalize="none"
+            hasAutoCorrect={false}
+            hasAutoFocus
             placeholder="https://www.amazon.in/…"
             value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            onPaste={(e) => {
-              const text = e.clipboardData.getData("text");
-              if (/https?:\/\//.test(text)) {
-                e.preventDefault();
-                setUrl(text);
-                fetchIt(text);
-              }
+            onChange={(v) => {
+              setUrl(v);
+              // Pasting a whole link fetches straight away.
+              if (/^\s*\S*https?:\/\/\S+/.test(v) && v.length - url.length > 10) fetchIt(v);
             }}
+            hasClear
           />
-          <Button type="submit" size="lg" block loading={fetching} disabled={!url.trim()}>
-            {fetching ? tr("Fetching details…", "जानकारी ला रहे हैं…") : tr("Fetch details", "जानकारी लाएँ")}
-          </Button>
-          <button type="button" className="h-11 w-full text-[15px] font-semibold text-primary underline" onClick={() => setDraft({ ...emptyDraft("product"), emoji: "🎁" })}>
-            {tr("No link? Add a gift by hand", "लिंक नहीं है? ख़ुद लिखकर जोड़ें")}
-          </button>
+          <Button type="submit" variant="primary" size="lg" width="100%" isLoading={fetching} isDisabled={!url.trim()} label={fetching ? tr("Fetching details…", "जानकारी ला रहे हैं…") : tr("Fetch details", "जानकारी लाएँ")} />
         </form>
       ) : (
-        <div className="pb-2">
-          {partial && draft.url && (
-            <p className="mb-4 rounded-2xl bg-amber-50 p-3 text-[15px] text-amber-900">
-              {tr("This store didn't share everything. Please check the name and price.", "इस स्टोर से पूरी जानकारी नहीं मिली। कृपया नाम और दाम जाँच लें।")}
-            </p>
+        <div className="space-y-4 pb-2">
+          {partial !== "none" && (
+            <Banner
+              status={partial === "all" ? "warning" : "info"}
+              collapsible={false}
+              title={partial === "all" ? tr("The store didn't share the details", "स्टोर ने जानकारी नहीं दी") : tr("Some details are missing", "कुछ जानकारी नहीं मिली")}
+              description={
+                partial === "all"
+                  ? tr("Shops like Amazon sometimes block this. We guessed the name from the link. Add the price, and a photo from your gallery if you like.", "Amazon जैसी दुकानें कभी-कभी रोक देती हैं। नाम लिंक से अंदाज़ा लगाया है, दाम डालें, और चाहें तो गैलरी से फ़ोटो लगाएँ।")
+                  : tr("Please check the name and price, and add a photo if it's missing.", "कृपया नाम और दाम जाँचें, और फ़ोटो न हो तो लगा दें।")
+              }
+            />
           )}
-          <ItemForm draft={draft} set={(p) => setDraft((d) => (d ? { ...d, ...p } : d))} />
-          <Button size="lg" block className="mt-5" loading={pending} disabled={!draft.title.trim() || !draft.price} onClick={() => save(() => addItem(slug, toInput(draft)), onDone)}>
-            {tr("Add to wishlist", "सूची में जोड़ें")}
-          </Button>
+          <ItemForm slug={slug} draft={draft} set={(p) => setDraft((d) => (d ? { ...d, ...p } : d))} />
+          <Button variant="primary" size="lg" width="100%" isLoading={pending} isDisabled={!draft.title.trim() || !draft.price} label={tr("Add to wishlist", "सूची में जोड़ें")} onClick={() => save(() => addItem(slug, toInput(draft)), onDone)} />
         </div>
       )}
+    </Sheet>
+  );
+}
+
+function ManualSheet({ slug, onClose, onDone }: { slug: string; onClose: () => void; onDone: () => void }) {
+  const tr = useTr();
+  const [draft, setDraft] = useState<Draft>(emptyDraft("product"));
+  const { pending, save } = useSave();
+  return (
+    <Sheet open onOpenChange={(o) => !o && onClose()} title={tr("Add a gift yourself", "ख़ुद तोहफ़ा लिखें")} description={tr("Guests can buy it from any shop.", "मेहमान इसे किसी भी दुकान से ख़रीद सकते हैं।")} purpose="form" height="tall">
+      <div className="space-y-4 pb-2">
+        <ItemForm slug={slug} draft={draft} set={(p) => setDraft((d) => ({ ...d, ...p }))} />
+        <Button variant="primary" size="lg" width="100%" isLoading={pending} isDisabled={!draft.title.trim() || !draft.price} label={tr("Add to wishlist", "सूची में जोड़ें")} onClick={() => save(() => addItem(slug, toInput(draft)), onDone)} />
+      </div>
     </Sheet>
   );
 }
@@ -403,12 +464,18 @@ function EssentialsSheet({ slug, onClose, onDone }: { slug: string; onClose: () 
   const [selected, setSelected] = useState<string[]>([]);
   const { pending, save } = useSave();
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()} title={tr("Wedding essentials", "शादी का ज़रूरी सामान")} description={tr("Tap everything you'd like.", "जो-जो चाहिए, उस पर टैप करें।")}>
+    <Sheet open onOpenChange={(o) => !o && onClose()} title={tr("Wedding essentials", "शादी का ज़रूरी सामान")} description={tr("Tap everything you'd like.", "जो-जो चाहिए, उस पर टैप करें।")} height="tall">
       <EssentialsPicker selected={selected} onChange={setSelected} />
-      <div className="sticky bottom-0 -mx-5 mt-4 border-t border-line bg-cream px-5 py-3">
-        <Button size="lg" block loading={pending} disabled={!selected.length} onClick={() => save(() => addFromCatalog(slug, selected, []), () => onDone(selected.length))}>
-          {selected.length ? tr(`Add ${selected.length} to wishlist`, `${selected.length} चीज़ें सूची में जोड़ें`) : tr("Select items", "चीज़ें चुनें")}
-        </Button>
+      <div className="sticky bottom-0 -mx-5 mt-4 border-t border-border bg-surface px-5 py-3">
+        <Button
+          variant="primary"
+          size="lg"
+          width="100%"
+          isLoading={pending}
+          isDisabled={!selected.length}
+          label={selected.length ? tr(`Add ${selected.length} to wishlist`, `${selected.length} चीज़ें सूची में जोड़ें`) : tr("Select items", "चीज़ें चुनें")}
+          onClick={() => save(() => addFromCatalog(slug, selected, []), () => onDone(selected.length))}
+        />
       </div>
     </Sheet>
   );
@@ -422,23 +489,25 @@ function FundSheet({ slug, onClose, onDone }: { slug: string; onClose: () => voi
   const [selected, setSelected] = useState<string[]>([]);
   const { pending, save } = useSave();
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()} title={tr("Shagun funds", "शगुन फंड")} description={tr("Guests give any amount by UPI. We suggest ₹501, ₹1,101, ₹2,101…", "मेहमान UPI से कोई भी राशि दें। हम ₹501, ₹1,101, ₹2,101… सुझाते हैं।")}>
+    <Sheet open onOpenChange={(o) => !o && onClose()} title={tr("Shagun funds", "शगुन फंड")} description={tr("Guests give any amount by UPI. We suggest ₹501, ₹1,101, ₹2,101…", "मेहमान UPI से कोई भी राशि दें। हम ₹501, ₹1,101, ₹2,101… सुझाते हैं।")} height="tall" purpose="form">
       {custom ? (
-        <div className="pb-2">
-          <ItemForm draft={custom} set={(p) => setCustom((d) => (d ? { ...d, ...p } : d))} />
-          <Button size="lg" block className="mt-5" loading={pending} disabled={!custom.title.trim()} onClick={() => save(() => addItem(slug, toInput(custom)), () => onDone(tr("Fund created", "फंड बन गया")))}>
-            {tr("Create fund", "फंड बनाएँ")}
-          </Button>
+        <div className="space-y-4 pb-2">
+          <ItemForm slug={slug} draft={custom} set={(p) => setCustom((d) => (d ? { ...d, ...p } : d))} />
+          <Button variant="primary" size="lg" width="100%" isLoading={pending} isDisabled={!custom.title.trim()} label={tr("Create fund", "फंड बनाएँ")} onClick={() => save(() => addItem(slug, toInput(custom)), () => onDone(tr("Fund created", "फंड बन गया")))} />
         </div>
       ) : (
-        <div className="pb-2">
+        <div className="space-y-3 pb-2">
           <FundPicker selected={selected} onChange={setSelected} />
-          <button type="button" className="mt-3 flex h-14 w-full items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-line text-[16px] font-semibold text-primary" onClick={() => setCustom(emptyDraft("fund"))}>
-            <Plus className="size-5" /> {tr("Create your own fund", "अपना फंड बनाएँ")}
-          </button>
-          <Button size="lg" block className="mt-4" loading={pending} disabled={!selected.length} onClick={() => save(() => addFromCatalog(slug, [], selected), () => onDone(tr("Funds added", "फंड जुड़ गए")))}>
-            {selected.length ? tr(`Add ${selected.length} fund${selected.length > 1 ? "s" : ""}`, `${selected.length} फंड जोड़ें`) : tr("Select a fund", "फंड चुनें")}
-          </Button>
+          <Button width="100%" icon={<Icon icon={Plus} />} label={tr("Create your own fund", "अपना फंड बनाएँ")} onClick={() => setCustom(emptyDraft("fund"))} />
+          <Button
+            variant="primary"
+            size="lg"
+            width="100%"
+            isLoading={pending}
+            isDisabled={!selected.length}
+            label={selected.length ? tr(`Add ${selected.length} fund${selected.length > 1 ? "s" : ""}`, `${selected.length} फंड जोड़ें`) : tr("Select a fund", "फंड चुनें")}
+            onClick={() => save(() => addFromCatalog(slug, [], selected), () => onDone(tr("Funds added", "फंड जुड़ गए")))}
+          />
         </div>
       )}
     </Sheet>
@@ -454,32 +523,32 @@ function EditSheet({ slug, item, onClose, onDone }: { slug: string; item: Manage
   const { pending, save } = useSave();
   const hasActivity = item.givers > 0;
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()} title={item.kind === "fund" ? tr("Edit fund", "फंड बदलें") : tr("Edit gift", "तोहफ़ा बदलें")}>
-      <div className="pb-2">
-        <ItemForm draft={draft} set={(p) => setDraft((d) => ({ ...d, ...p }))} locked={item.reservedQty > 0} />
-        <Button size="lg" block className="mt-5" loading={pending} disabled={!draft.title.trim() || (draft.kind === "product" && !draft.price)} onClick={() => save(() => updateItem(slug, item.id, toInput(draft)), () => onDone(tr("Saved", "सेव हो गया")))}>
-          {tr("Save changes", "बदलाव सेव करें")}
-        </Button>
+    <Sheet open onOpenChange={(o) => !o && onClose()} title={item.kind === "fund" ? tr("Edit fund", "फंड बदलें") : tr("Edit gift", "तोहफ़ा बदलें")} purpose="form" height="tall">
+      <div className="space-y-4 pb-2">
+        <ItemForm slug={slug} draft={draft} set={(p) => setDraft((d) => ({ ...d, ...p }))} locked={item.reservedQty > 0} />
+        <Button
+          variant="primary"
+          size="lg"
+          width="100%"
+          isLoading={pending}
+          isDisabled={!draft.title.trim() || (draft.kind === "product" && !draft.price)}
+          label={tr("Save changes", "बदलाव सेव करें")}
+          onClick={() => save(() => updateItem(slug, item.id, toInput(draft)), () => onDone(tr("Saved", "सेव हो गया")))}
+        />
         {confirmDelete ? (
-          <div className="mt-3 rounded-2xl bg-red-50 p-4">
-            <p className="text-[15px] font-semibold text-red-800">
-              {hasActivity
-                ? tr("Guests have already given towards this. Their entries stay in your ledger, but the gift will be removed.", "मेहमान इसके लिए दे चुके हैं। उनकी एंट्री बही में रहेगी, पर तोहफ़ा हट जाएगा।")
-                : tr("Remove this from your wishlist?", "इसे सूची से हटाएँ?")}
-            </p>
-            <div className="mt-3 flex gap-2">
-              <Button variant="danger" block loading={pending} onClick={() => save(() => deleteItem(slug, item.id), () => onDone(tr("Removed", "हटा दिया गया")))}>
-                {tr("Yes, remove", "हाँ, हटाएँ")}
-              </Button>
-              <Button variant="outline" block onClick={() => setConfirmDelete(false)}>
-                {tr("Keep", "रहने दें")}
-              </Button>
+          <Banner
+            status="error"
+            collapsible={false}
+            title={tr("Remove this from your wishlist?", "इसे सूची से हटाएँ?")}
+            description={hasActivity ? tr("Guests have already given towards this. Their entries stay in your ledger.", "मेहमान इसके लिए दे चुके हैं। उनकी एंट्री बही में रहेगी।") : undefined}
+          >
+            <div className="grid grid-cols-2 gap-2">
+              <Button variant="destructive" width="100%" isLoading={pending} label={tr("Yes, remove", "हाँ, हटाएँ")} onClick={() => save(() => deleteItem(slug, item.id), () => onDone(tr("Removed", "हटा दिया गया")))} />
+              <Button width="100%" label={tr("Keep it", "रहने दें")} onClick={() => setConfirmDelete(false)} />
             </div>
-          </div>
+          </Banner>
         ) : (
-          <button type="button" className="mt-2 h-12 w-full text-[15px] font-semibold text-red-700" onClick={() => setConfirmDelete(true)}>
-            {tr("Remove from wishlist", "सूची से हटाएँ")}
-          </button>
+          <Button variant="ghost" width="100%" label={tr("Remove from wishlist", "सूची से हटाएँ")} onClick={() => setConfirmDelete(true)} />
         )}
       </div>
     </Sheet>

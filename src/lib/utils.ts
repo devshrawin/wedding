@@ -55,6 +55,12 @@ export function slugify(s: string): string {
     .slice(0, 24);
 }
 
+/** "Priya Sharma" + "Arjun" → "priya-arjun". Short enough (≤ 29) to leave room for a collision suffix. */
+export function slugBase(a: string, b: string): string {
+  const part = (n: string) => slugify(n).split("-")[0].slice(0, 14);
+  return [part(a), part(b)].filter(Boolean).join("-") || "shaadi";
+}
+
 export function formatDate(iso: string | null | undefined, lang: Lang = "en"): string {
   if (!iso) return "";
   const d = new Date(iso.length === 10 ? iso + "T00:00:00" : iso);
@@ -89,10 +95,10 @@ export function whatsappLink(text: string, phone?: string | null): string {
 }
 
 export const THEMES = {
-  sindoor: { name: "Sindoor", nameHi: "सिंदूर", primary: "#8c1d2f", soft: "#fbeae6", deep: "#5e0f1d" },
-  marigold: { name: "Marigold", nameHi: "गेंदा", primary: "#b4530a", soft: "#fdf0d5", deep: "#7a3605" },
-  mehendi: { name: "Mehendi", nameHi: "मेहंदी", primary: "#1f6b4f", soft: "#e4f2ea", deep: "#12452f" },
-  peacock: { name: "Peacock", nameHi: "मोरपंख", primary: "#1d4f7a", soft: "#e4eef8", deep: "#10324f" },
+  sindoor: { name: "Sindoor", nameHi: "सिंदूर", primary: "#9B1C31", soft: "#F9E7E6", deep: "#6B1020" },
+  marigold: { name: "Marigold", nameHi: "गेंदा", primary: "#A84B06", soft: "#FCEFD9", deep: "#6E3104" },
+  mehendi: { name: "Mehendi", nameHi: "मेहंदी", primary: "#1C6B4C", soft: "#E3F1E9", deep: "#0F4430" },
+  peacock: { name: "Peacock", nameHi: "मोरपंख", primary: "#1B4F7C", soft: "#E3EDF7", deep: "#0E3150" },
 } as const;
 export type ThemeKey = keyof typeof THEMES;
 export function themeOf(key: string | null | undefined) {

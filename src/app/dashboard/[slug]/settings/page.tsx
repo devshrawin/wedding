@@ -1,4 +1,6 @@
 import { notFound } from "next/navigation";
+import { Button } from "@astryxdesign/core/Button";
+import { Heading } from "@astryxdesign/core/Heading";
 import { eq } from "drizzle-orm";
 import { logout } from "@/app/actions/auth";
 import { getManagedRegistry, requireUser } from "@/lib/auth";
@@ -20,7 +22,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-semibold">{tr("Settings", "सेटिंग")}</h1>
+      <Heading level={1}>{tr("Settings", "सेटिंग")}</Heading>
       <SettingsForms
         slug={slug}
         role={role}
@@ -42,9 +44,11 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
         }}
         members={members.map((m) => ({ id: m.id, name: m.name, phone: prettyPhone(m.phone), relation: m.relation }))}
       />
-      <form action={logout} className="pb-4 text-center text-[15px] text-muted">
-        {tr("Signed in as", "लॉग इन:")} {prettyPhone(user.phone)} ·{" "}
-        <button className="h-11 font-semibold underline">{tr("Sign out", "लॉग आउट")}</button>
+      <form action={logout} className="flex flex-col items-center gap-1 pb-4 text-[15px] text-secondary">
+        <span>
+          {tr("Signed in as", "लॉग इन:")} {prettyPhone(user.phone)}
+        </span>
+        <Button type="submit" variant="ghost" label={tr("Sign out", "लॉग आउट")} />
       </form>
     </div>
   );

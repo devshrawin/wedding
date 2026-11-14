@@ -1,7 +1,9 @@
 "use client";
 
+import { Switch } from "@astryxdesign/core/Switch";
+import { TextArea } from "@astryxdesign/core/TextArea";
+import { TextInput } from "@astryxdesign/core/TextInput";
 import { useTr } from "@/components/lang";
-import { Field, Switch } from "@/components/ui/bits";
 
 export type GuestInfo = { name: string; phone: string; message: string; anonymous: boolean };
 
@@ -32,25 +34,39 @@ export function GuestFields({ value, onChange }: { value: GuestInfo; onChange: (
     <div className="space-y-4">
       {!value.anonymous && (
         <>
-          <Field label={tr("Your name", "आपका नाम")}>
-            <input className="input" value={value.name} maxLength={60} onChange={(e) => onChange({ name: e.target.value })} placeholder={tr("Sunita Sharma (Bua ji)", "सुनीता शर्मा (बुआ जी)")} autoComplete="name" />
-          </Field>
-          <Field label={tr("Mobile number", "मोबाइल नंबर")} optional hint={tr("Only the couple sees this — so they can thank you on WhatsApp.", "यह सिर्फ़ जोड़े को दिखता है — ताकि वे WhatsApp पर धन्यवाद कह सकें।")}>
-            <input className="input" type="tel" inputMode="numeric" value={value.phone} maxLength={14} onChange={(e) => onChange({ phone: e.target.value.replace(/[^\d\s+]/g, "") })} placeholder="98765 43210" autoComplete="tel-national" />
-          </Field>
+          <TextInput label={tr("Your name", "आपका नाम")} width="100%" size="lg" value={value.name} onChange={(v) => onChange({ name: v.slice(0, 60) })} placeholder={tr("Sunita Sharma (Bua ji)", "सुनीता शर्मा (बुआ जी)")} autoComplete="name" />
+          <TextInput
+            label={tr("Mobile number", "मोबाइल नंबर")}
+            isOptional
+            description={tr("Only the couple sees this, so they can thank you on WhatsApp.", "यह सिर्फ़ जोड़े को दिखता है, ताकि वे WhatsApp पर धन्यवाद कह सकें।")}
+            width="100%"
+            type="tel"
+            inputMode="numeric"
+            value={value.phone}
+            onChange={(v) => onChange({ phone: v.replace(/[^\d\s+]/g, "").slice(0, 14) })}
+            placeholder="98765 43210"
+            autoComplete="tel-national"
+          />
         </>
       )}
-      <Field label={tr("Blessing for the couple", "जोड़े के लिए आशीर्वाद")} optional>
-        <textarea className="input" rows={2} maxLength={300} value={value.message} onChange={(e) => onChange({ message: e.target.value })} placeholder={tr("Wishing you a lifetime of happiness!", "आप दोनों को ढेर सारी ख़ुशियाँ मिलें!")} />
-      </Field>
-      <div className="rounded-2xl border border-line bg-white px-4 py-1">
-        <Switch
-          checked={value.anonymous}
-          onChange={(v) => onChange({ anonymous: v })}
-          label={tr("Give anonymously", "गुमनाम रहकर दें")}
-          hint={tr("We won't record your name. A surprise blessing!", "हम आपका नाम दर्ज नहीं करेंगे। एक गुप्त आशीर्वाद!")}
-        />
-      </div>
+      <TextArea
+        label={tr("Blessing for the couple", "जोड़े के लिए आशीर्वाद")}
+        isOptional
+        width="100%"
+        rows={2}
+        maxLength={300}
+        value={value.message}
+        onChange={(v) => onChange({ message: v })}
+        placeholder={tr("Wishing you a lifetime of happiness!", "आप दोनों को ढेर सारी ख़ुशियाँ मिलें!")}
+      />
+      <Switch
+        label={tr("Give anonymously", "गुमनाम रहकर दें")}
+        description={tr("We won't record your name. A surprise blessing!", "हम आपका नाम दर्ज नहीं करेंगे। एक गुप्त आशीर्वाद!")}
+        labelSpacing="spread"
+        width="100%"
+        value={value.anonymous}
+        onChange={(v) => onChange({ anonymous: v })}
+      />
     </div>
   );
 }

@@ -226,8 +226,8 @@
     --color-icon-primary: light-dark(#4a3520, #EDE4D4);
     --color-icon-secondary: light-dark(#B88859, #c4a882);
     --color-icon-disabled: light-dark(#C4AC95, #6b5540);
-    --color-background-card: light-dark(#EDE4D4, #2a2018);
-    --color-background-popover: light-dark(#FFFCF7, #2a2018);
+    --color-background-card: light-dark(#FFFDF9, #1E1714);
+    --color-background-popover: light-dark(#FFFDF9, #241C18);
     --color-background-inverted: light-dark(#4a3520, #EDE4D4);
     --color-success: light-dark(#1F7A55, #5CC79A);
     --color-success-muted: light-dark(#70990020, #96bf2a20);

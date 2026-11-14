@@ -1,10 +1,12 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { Camera, Check, Trash2 } from "lucide-react";
+import { DateInput } from "@astryxdesign/core/DateInput";
+import { Field } from "@astryxdesign/core/Field";
+import { TextArea } from "@astryxdesign/core/TextArea";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { Check } from "lucide-react";
 import { useLang, useTr } from "@/components/lang";
-import { Field, toast } from "@/components/ui/bits";
-import { compressImage } from "@/lib/image";
+import { PhotoPicker } from "@/components/ui/kit";
 import { THEMES, cn, type ThemeKey } from "@/lib/utils";
 
 export type RegistryDraft = {
@@ -14,7 +16,7 @@ export type RegistryDraft = {
   city: string;
   note: string;
   theme: string;
-  /** data URL, null (none), or "keep" (unchanged on edit) */
+  /** data URL (new photo), null (none), or "keep" (unchanged on edit) */
   photo: string | null;
 };
 
@@ -32,106 +34,69 @@ export function RegistryFields({
 }) {
   const tr = useTr();
   const lang = useLang();
-  const fileRef = useRef<HTMLInputElement>(null);
-  const [busy, setBusy] = useState(false);
-  const shown = value.photo === "keep" ? currentPhoto : value.photo;
-
-  const pick = async (file: File | undefined) => {
-    if (!file) return;
-    setBusy(true);
-    try {
-      onChange({ photo: await compressImage(file) });
-    } catch {
-      toast(tr("Couldn't use that photo. Try another one.", "यह फ़ोटो नहीं लग पाई। कोई और चुनें।"), "error");
-    } finally {
-      setBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
-    }
-  };
+  const shown = value.photo === "keep" ? (currentPhoto ?? null) : value.photo;
 
   return (
     <div className="space-y-5">
       <div className="grid grid-cols-2 gap-3">
-        <Field label={tr("Your name", "आपका नाम")}>
-          <input className="input" value={value.partnerOne} onChange={(e) => onChange({ partnerOne: e.target.value })} maxLength={40} placeholder={tr("Ananya", "अनन्या")} autoComplete="given-name" />
-        </Field>
-        <Field label={tr("Partner's name", "साथी का नाम")}>
-          <input className="input" value={value.partnerTwo} onChange={(e) => onChange({ partnerTwo: e.target.value })} maxLength={40} placeholder={tr("Rohan", "रोहन")} autoComplete="off" />
-        </Field>
+        <TextInput label={tr("Your name", "आपका नाम")} width="100%" size="lg" value={value.partnerOne} onChange={(v) => onChange({ partnerOne: v.slice(0, 40) })} placeholder={tr("Ananya", "अनन्या")} autoComplete="given-name" />
+        <TextInput label={tr("Partner's name", "साथी का नाम")} width="100%" size="lg" value={value.partnerTwo} onChange={(v) => onChange({ partnerTwo: v.slice(0, 40) })} placeholder={tr("Rohan", "रोहन")} autoComplete="off" />
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label={tr("Wedding date", "शादी की तारीख़")} optional>
-          <input className="input" type="date" value={value.weddingDate} onChange={(e) => onChange({ weddingDate: e.target.value })} />
-        </Field>
-        <Field label={tr("City", "शहर")} optional>
-          <input className="input" value={value.city} onChange={(e) => onChange({ city: e.target.value })} maxLength={60} placeholder={tr("Jaipur", "जयपुर")} autoComplete="address-level2" />
-        </Field>
+        <DateInput
+          label={tr("Wedding date", "शादी की तारीख़")}
+          isOptional
+          size="lg"
+          placeholder={tr("Pick a date", "तारीख़ चुनें")}
+          value={(value.weddingDate || undefined) as never}
+          onChange={(v) => onChange({ weddingDate: v ?? "" })}
+        />
+        <TextInput label={tr("City", "शहर")} isOptional width="100%" size="lg" value={value.city} onChange={(v) => onChange({ city: v.slice(0, 60) })} placeholder={tr("Jaipur", "जयपुर")} autoComplete="address-level2" />
       </div>
 
       {showNote && (
-        <Field label={tr("A short note for guests", "मेहमानों के लिए छोटा संदेश")} optional>
-          <textarea
-            className="input"
-            rows={3}
-            maxLength={400}
-            value={value.note}
-            onChange={(e) => onChange({ note: e.target.value })}
-            placeholder={tr("Your presence is the real gift. If you'd still like to bless us, here are a few things for our new home.", "आपका आना ही सबसे बड़ा तोहफ़ा है। फिर भी आशीर्वाद देना चाहें, तो हमारे नए घर के लिए कुछ चीज़ें ये रहीं।")}
-          />
-        </Field>
+        <TextArea
+          label={tr("A short note for guests", "मेहमानों के लिए छोटा संदेश")}
+          isOptional
+          width="100%"
+          rows={3}
+          maxLength={400}
+          value={value.note}
+          onChange={(v) => onChange({ note: v })}
+          placeholder={tr("Your presence is the real gift. If you'd still like to bless us, here are a few things for our new home.", "आपका आना ही सबसे बड़ा तोहफ़ा है। फिर भी आशीर्वाद देना चाहें, तो हमारे नए घर के लिए कुछ चीज़ें ये रहीं।")}
+        />
       )}
 
-      <div>
-        <span className="label">
-          {tr("Couple photo", "जोड़े की फ़ोटो")} <span className="ml-1.5 font-normal text-muted">({tr("optional", "वैकल्पिक")})</span>
-        </span>
-        <div className="flex items-center gap-4">
-          <button
-            type="button"
-            onClick={() => fileRef.current?.click()}
-            className="relative grid size-20 shrink-0 place-items-center overflow-hidden rounded-full border-2 border-dashed border-line bg-white text-muted hover:border-primary"
-            aria-label={tr("Choose photo", "फ़ोटो चुनें")}
-          >
-            {shown ? <img src={shown} alt="" className="size-full object-cover" /> : <Camera className="size-7" />}
-            {busy && <span className="absolute inset-0 grid place-items-center bg-white/70"><span className="size-5 animate-spin rounded-full border-2 border-primary border-r-transparent" /></span>}
-          </button>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="chip" onClick={() => fileRef.current?.click()}>
-              {shown ? tr("Change photo", "फ़ोटो बदलें") : tr("Add photo", "फ़ोटो जोड़ें")}
-            </button>
-            {shown && (
-              <button type="button" className="chip text-red-700" onClick={() => onChange({ photo: null })}>
-                <Trash2 className="size-4" /> {tr("Remove", "हटाएँ")}
-              </button>
-            )}
-          </div>
-          <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={(e) => pick(e.target.files?.[0])} />
-        </div>
-      </div>
+      <Field label={tr("Couple photo", "जोड़े की फ़ोटो")} inputID="couple-photo" isOptional>
+        <PhotoPicker round label={tr("Choose couple photo", "जोड़े की फ़ोटो चुनें")} maxSide={720} value={shown} onPick={(d) => onChange({ photo: d })} onRemove={() => onChange({ photo: null })} />
+      </Field>
 
-      <div>
-        <span className="label">{tr("Colour", "रंग")}</span>
-        <div className="flex flex-wrap gap-2.5">
-          {(Object.keys(THEMES) as ThemeKey[]).map((k) => (
-            <button
-              key={k}
-              type="button"
-              onClick={() => onChange({ theme: k })}
-              aria-pressed={value.theme === k}
-              className={cn(
-                "flex h-12 items-center gap-2 rounded-full border-2 bg-white pl-1.5 pr-4 text-[15px] font-semibold",
-                value.theme === k ? "border-ink" : "border-line",
-              )}
-            >
-              <span className="grid size-8 place-items-center rounded-full text-white" style={{ background: THEMES[k].primary }}>
-                {value.theme === k && <Check className="size-4" />}
-              </span>
-              {lang === "hi" ? THEMES[k].nameHi : THEMES[k].name}
-            </button>
-          ))}
+      <Field label={tr("Colour of your page", "आपके पेज का रंग")} inputID="theme-colour" isGroupLabel>
+        <div className="flex flex-wrap gap-2.5" role="radiogroup" aria-label={tr("Colour of your page", "आपके पेज का रंग")}>
+          {(Object.keys(THEMES) as ThemeKey[]).map((k) => {
+            const on = value.theme === k;
+            return (
+              <button
+                key={k}
+                type="button"
+                role="radio"
+                aria-checked={on}
+                onClick={() => onChange({ theme: k })}
+                className={cn(
+                  "flex h-12 items-center gap-2 rounded-full border-2 bg-surface pl-1.5 pr-4 text-[15px] font-semibold text-primary transition-colors",
+                  on ? "border-[var(--color-text-primary)]" : "border-border hover:border-[var(--color-border-emphasized)]",
+                )}
+              >
+                <span className="grid size-8 place-items-center rounded-full text-white" style={{ background: THEMES[k].primary }}>
+                  {on && <Check className="size-4" aria-hidden />}
+                </span>
+                {lang === "hi" ? THEMES[k].nameHi : THEMES[k].name}
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </Field>
     </div>
   );
 }

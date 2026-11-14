@@ -29,6 +29,7 @@ export default async function GiftsPage({ params, searchParams }: { params: Prom
     progress: i.progress,
     fulfilled: i.fulfilled,
     givers: i.givers,
+    chipInLeft: i.chipInLeft,
   }));
   return <GiftsManager slug={slug} items={list} openAdd={(await searchParams).add === "1"} />;
 }

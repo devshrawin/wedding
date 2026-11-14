@@ -4,13 +4,33 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Icon } from "@astryxdesign/core/Icon";
+import { IconButton } from "@astryxdesign/core/IconButton";
+import { Text } from "@astryxdesign/core/Text";
+import { TextArea } from "@astryxdesign/core/TextArea";
 import { Download, Eye, Lock, MessageCircle, Share2, Trash2, UserPlus } from "lucide-react";
 import { createInvites, deleteInvite } from "@/app/actions/registry";
 import { useLang, useTr } from "@/components/lang";
-import { Button } from "@/components/ui/button";
-import { CopyButton, toast } from "@/components/ui/bits";
+import { CopyButton, toast } from "@/components/ui/feedback";
 import { errorText } from "@/lib/result";
 import { whatsappLink } from "@/lib/utils";
+
+function WhatsAppButton({ href, label, size = "lg" }: { href: string; label: string; size?: "md" | "lg" }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`inline-flex w-full items-center justify-center gap-2 rounded-[var(--radius-element)] bg-whatsapp px-6 font-semibold text-white transition-[filter] hover:brightness-95 ${size === "lg" ? "h-13 text-[17px]" : "h-11"}`}
+    >
+      <MessageCircle className="size-5" aria-hidden /> {label}
+    </a>
+  );
+}
 
 type Props = {
   slug: string;
@@ -43,36 +63,34 @@ export function SharePanel({ slug, origin, registry, invites }: Props) {
 
   return (
     <div className="space-y-6">
-      <h1 className="text-3xl font-semibold">{tr("Share your registry", "रजिस्ट्री शेयर करें")}</h1>
+      <Heading level={1}>{tr("Share your registry", "रजिस्ट्री शेयर करें")}</Heading>
 
       {inviteOnly ? (
         <InviteManager slug={slug} base={base} invites={invites} message={message} />
       ) : (
-        <section className="card p-5">
-          <h2 className="text-xl font-semibold">{tr("Your registry link", "आपकी रजिस्ट्री का लिंक")}</h2>
-          <p className="mt-3 break-all rounded-2xl bg-sand/70 px-4 py-3 font-mono text-[15px]">{url}</p>
+        <Card padding={5}>
+          <Heading level={2}>{tr("Your registry link", "आपकी रजिस्ट्री का लिंक")}</Heading>
+          <p className="mt-3 break-all rounded-lg bg-muted px-4 py-3 font-mono text-[15px] text-primary">{url}</p>
           {registry.visibility === "password" && (
-            <p className="mt-2 flex items-center gap-1.5 text-[15px] text-muted">
-              <Lock className="size-4" /> {tr("Guests will need the password — share it with them separately.", "मेहमानों को पासवर्ड चाहिए होगा — उसे अलग से बताएँ।")}
+            <p className="mt-2 flex items-center gap-1.5 text-[15px] text-secondary">
+              <Lock className="size-4" aria-hidden /> {tr("Guests will need the password. Share it with them separately.", "मेहमानों को पासवर्ड चाहिए होगा, उसे अलग से बताएँ।")}
             </p>
           )}
           <div className="mt-4 grid gap-2.5">
-            <a href={whatsappLink(message(url))} target="_blank" rel="noopener noreferrer" className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-whatsapp px-6 text-lg font-semibold text-white">
-              <MessageCircle className="size-5" /> {tr("Share on WhatsApp", "WhatsApp पर भेजें")}
-            </a>
+            <WhatsAppButton href={whatsappLink(message(url))} label={tr("Share on WhatsApp", "WhatsApp पर भेजें")} />
             <div className="grid grid-cols-2 gap-2.5">
-              <CopyButton text={url} label={tr("Copy link", "लिंक कॉपी करें")} className="h-12" />
-              <CopyButton text={message(url)} label={tr("Copy message", "संदेश कॉपी करें")} className="h-12" />
+              <CopyButton text={url} label={tr("Copy link", "लिंक कॉपी करें")} width="100%" />
+              <CopyButton text={message(url)} label={tr("Copy message", "संदेश कॉपी करें")} width="100%" />
             </div>
           </div>
-        </section>
+        </Card>
       )}
 
       <ShareCard url={url} couple={couple} registry={registry} inviteOnly={inviteOnly} />
 
-      <p className="text-center text-[15px] text-muted">
+      <p className="text-center text-[15px] text-secondary">
         {tr("Want more privacy?", "और निजता चाहिए?")}{" "}
-        <Link href={`/dashboard/${slug}/settings#privacy`} className="font-semibold text-primary underline">
+        <Link href={`/dashboard/${slug}/settings#privacy`} className="font-semibold text-accent underline underline-offset-4">
           {tr("Change who can see your registry", "तय करें कि रजिस्ट्री कौन देख सकता है")}
         </Link>
       </p>
@@ -104,49 +122,59 @@ function InviteManager({ slug, base, invites, message }: { slug: string; base: s
     });
 
   return (
-    <section className="card p-5">
+    <Card padding={5}>
       <div className="flex items-center gap-2">
-        <Lock className="size-5 text-primary" />
-        <h2 className="text-xl font-semibold">{tr("Invite-only", "सिर्फ़ आमंत्रित मेहमान")}</h2>
+        <Lock className="size-5 text-accent" aria-hidden />
+        <Heading level={2}>{tr("Invite-only", "सिर्फ़ आमंत्रित मेहमान")}</Heading>
       </div>
-      <p className="mt-1 text-[15px] text-muted">
-        {tr("Each guest gets a personal link. Only people with a link can open your registry — delete a link to take access back.", "हर मेहमान को अपना अलग लिंक मिलता है। सिर्फ़ लिंक वाले लोग ही रजिस्ट्री खोल सकते हैं — लिंक हटाते ही पहुँच बंद।")}
-      </p>
+      <Text as="p" type="supporting" display="block">
+        {tr("Each guest gets a personal link. Only people with a link can open your registry. Delete a link to take access back.", "हर मेहमान को अपना अलग लिंक मिलता है। सिर्फ़ लिंक वाले लोग ही रजिस्ट्री खोल सकते हैं, लिंक हटाते ही पहुँच बंद।")}
+      </Text>
 
-      <label className="mt-4 block">
-        <span className="label">{tr("Guest or family names (one per line)", "मेहमान या परिवार के नाम (हर पंक्ति में एक)")}</span>
-        <textarea className="input" rows={3} value={names} onChange={(e) => setNames(e.target.value)} placeholder={tr("Sharma family\nNeha Didi\nOffice friends", "शर्मा परिवार\nनेहा दीदी\nऑफ़िस के दोस्त")} />
-      </label>
-      <Button block className="mt-3" loading={pending} disabled={!names.trim()} onClick={add}>
-        <UserPlus className="size-5" /> {tr("Create invite links", "आमंत्रण लिंक बनाएँ")}
-      </Button>
+      <div className="mt-4">
+        <TextArea
+          label={tr("Guest or family names (one per line)", "मेहमान या परिवार के नाम (हर पंक्ति में एक)")}
+          width="100%"
+          rows={3}
+          value={names}
+          onChange={setNames}
+          placeholder={tr("Sharma family\nNeha Didi\nOffice friends", "शर्मा परिवार\nनेहा दीदी\nऑफ़िस के दोस्त")}
+        />
+      </div>
+      <div className="mt-3">
+        <Button variant="primary" width="100%" isLoading={pending} isDisabled={!names.trim()} label={tr("Create invite links", "आमंत्रण लिंक बनाएँ")} icon={<Icon icon={UserPlus} />} onClick={add} />
+      </div>
 
       {invites.length > 0 && (
-        <ul className="mt-5 divide-y divide-line border-t border-line">
+        <ul className="mt-5 divide-y divide-[var(--color-border)] border-t border-border">
           {invites.map((i) => {
             const link = `${base}/i/${i.token}`;
             return (
               <li key={i.id} className="flex items-center gap-2 py-3">
                 <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold">{i.guestName}</p>
-                  <p className="flex items-center gap-1 text-sm text-muted">
-                    <Eye className="size-3.5" />
+                  <p className="truncate font-semibold text-primary">{i.guestName}</p>
+                  <p className="flex items-center gap-1 text-sm text-secondary">
+                    <Eye className="size-3.5" aria-hidden />
                     {i.opens > 0 ? tr(`Opened ${i.opens}×`, `${i.opens} बार खोला`) : tr("Not opened yet", "अभी नहीं खोला")}
                   </p>
                 </div>
-                <a href={whatsappLink(message(link, i.guestName))} target="_blank" rel="noopener noreferrer" className="grid size-11 place-items-center rounded-xl bg-whatsapp text-white" aria-label={tr(`Send to ${i.guestName} on WhatsApp`, `${i.guestName} को WhatsApp पर भेजें`)}>
-                  <MessageCircle className="size-5" />
+                <a
+                  href={whatsappLink(message(link, i.guestName))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="grid size-11 place-items-center rounded-[var(--radius-element)] bg-whatsapp text-white"
+                  aria-label={tr(`Send to ${i.guestName} on WhatsApp`, `${i.guestName} को WhatsApp पर भेजें`)}
+                >
+                  <MessageCircle className="size-5" aria-hidden />
                 </a>
                 <CopyButton text={link} label={tr("Link", "लिंक")} />
-                <button type="button" onClick={() => remove(i.id)} className="grid size-11 place-items-center rounded-xl text-muted hover:bg-red-50 hover:text-red-700" aria-label={tr(`Delete invite for ${i.guestName}`, `${i.guestName} का आमंत्रण हटाएँ`)}>
-                  <Trash2 className="size-5" />
-                </button>
+                <IconButton variant="ghost" label={tr(`Delete invite for ${i.guestName}`, `${i.guestName} का आमंत्रण हटाएँ`)} icon={<Icon icon={Trash2} />} onClick={() => remove(i.id)} />
               </li>
             );
           })}
         </ul>
       )}
-    </section>
+    </Card>
   );
 }
 
@@ -170,9 +198,8 @@ function ShareCard({ url, couple, registry, inviteOnly }: { url: string; couple:
       const ctx = canvas.getContext("2d");
       if (!ctx || cancelled) return;
       const { primary, deep } = registry.theme;
-      const display = getComputedStyle(document.documentElement).getPropertyValue("--font-fraunces").trim() || "Georgia";
-      const sans = getComputedStyle(document.documentElement).getPropertyValue("--font-mukta").trim() || "sans-serif";
-      const serif = `${display}, ${sans}, serif`;
+      const sans = "Mukta, 'Noto Sans Devanagari', sans-serif";
+      const serif = "Fraunces, Mukta, Georgia, serif";
 
       // Backdrop
       const g = ctx.createLinearGradient(0, 0, 0, H);
@@ -250,7 +277,7 @@ function ShareCard({ url, couple, registry, inviteOnly }: { url: string; couple:
       ctx.fillText(lang === "hi" ? "स्कैन करें · आशीर्वाद भेजें" : "Scan to bless the couple", W / 2, 1195);
       ctx.fillStyle = "rgba(255,255,255,.7)";
       ctx.font = `500 30px ${sans}`;
-      ctx.fillText(lang === "hi" ? "तोहफ़ों की सूची और UPI शगुन · giftr" : "Gift wishlist & UPI shagun · giftr", W / 2, 1250);
+      ctx.fillText(lang === "hi" ? "तोहफ़ों की सूची और UPI शगुन · Giftr" : "Gift wishlist & UPI shagun · Giftr", W / 2, 1250);
       setReady(true);
     })();
     return () => {
@@ -284,23 +311,28 @@ function ShareCard({ url, couple, registry, inviteOnly }: { url: string; couple:
   };
 
   return (
-    <section className="card p-5">
-      <h2 className="text-xl font-semibold">{tr("Card with QR code", "QR कोड वाला कार्ड")}</h2>
-      <p className="mt-1 text-[15px] text-muted">
-        {inviteOnly
-          ? tr("Heads-up: your registry is invite-only, so this QR opens only for people who already used their invite link.", "ध्यान दें: रजिस्ट्री सिर्फ़ आमंत्रितों के लिए है, इसलिए यह QR उन्हीं के लिए खुलेगा जिन्होंने अपना आमंत्रण लिंक खोला है।")
-          : tr("Send it on WhatsApp, print it on your invitation, or keep it at the shagun counter.", "WhatsApp पर भेजें, निमंत्रण पत्र पर छापें, या शगुन काउंटर पर रखें।")}
-      </p>
-      <canvas ref={canvasRef} width={W} height={H} className="mx-auto mt-4 w-full max-w-xs rounded-3xl shadow-soft" role="img" aria-label={tr(`Share card for ${couple} with QR code`, `${couple} का QR कोड वाला कार्ड`)} />
+    <Card padding={5}>
+      <Heading level={2}>{tr("Card with QR code", "QR कोड वाला कार्ड")}</Heading>
+      {inviteOnly ? (
+        <div className="mt-2">
+          <Banner
+            status="info"
+            collapsible={false}
+            title={tr("Your registry is invite-only", "आपकी रजिस्ट्री सिर्फ़ आमंत्रितों के लिए है")}
+            description={tr("This QR opens only for people who already used their invite link.", "यह QR उन्हीं के लिए खुलेगा जिन्होंने अपना आमंत्रण लिंक खोला है।")}
+          />
+        </div>
+      ) : (
+        <Text as="p" type="supporting" display="block">
+          {tr("Send it on WhatsApp, print it on your invitation, or keep it at the shagun counter.", "WhatsApp पर भेजें, निमंत्रण पत्र पर छापें, या शगुन काउंटर पर रखें।")}
+        </Text>
+      )}
+      <canvas ref={canvasRef} width={W} height={H} className="mx-auto mt-4 w-full max-w-xs rounded-2xl shadow-md" role="img" aria-label={tr(`Share card for ${couple} with QR code`, `${couple} का QR कोड वाला कार्ड`)} />
       <div className="mt-4 grid grid-cols-2 gap-2.5">
-        <Button onClick={share} disabled={!ready}>
-          <Share2 className="size-5" /> {tr("Share card", "कार्ड भेजें")}
-        </Button>
-        <Button variant="outline" onClick={download} disabled={!ready}>
-          <Download className="size-5" /> {tr("Download", "डाउनलोड")}
-        </Button>
+        <Button variant="primary" width="100%" isDisabled={!ready} label={tr("Share card", "कार्ड भेजें")} icon={<Icon icon={Share2} />} onClick={share} />
+        <Button width="100%" isDisabled={!ready} label={tr("Download", "डाउनलोड")} icon={<Icon icon={Download} />} onClick={download} />
       </div>
-    </section>
+    </Card>
   );
 }
 

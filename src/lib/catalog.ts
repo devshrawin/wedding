@@ -21,7 +21,7 @@ export type CatalogItem = {
   hi: string;
   emoji: string;
   category: string;
-  price: number; // typical price in rupees — couples can edit
+  price: number; // typical price in rupees, couples can edit
   starter?: boolean;
 };
 

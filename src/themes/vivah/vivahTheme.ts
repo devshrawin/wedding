@@ -39,6 +39,8 @@ export const vivahTheme = defineTheme({
     '--color-background-body': ['#FBF6EE', '#15100E'],
     '--color-background-surface': ['#FFFDF9', '#1E1714'],
     '--color-background-muted': ['#F3EADB', '#2A211C'],
+    '--color-background-card': ['#FFFDF9', '#1E1714'],
+    '--color-background-popover': ['#FFFDF9', '#241C18'],
     '--color-neutral': ['#5A2A1A0D', '#F3EADB14'],
 
     // Chocolate's secondary text is ~3:1 on ivory; this is ~6:1 (WCAG AA for body text).

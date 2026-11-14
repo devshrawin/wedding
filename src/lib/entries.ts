@@ -18,6 +18,7 @@ export type Entry = {
   method: "upi" | "razorpay" | "cash" | "gift";
   status: string;
   utr: string | null;
+  proofImage: string | null;
   thanked: boolean;
   createdAt: string;
 };
@@ -42,6 +43,7 @@ export function buildEntries(items: ItemView[], reservations: Reservation[], con
       method: c.method as Entry["method"],
       status: c.status,
       utr: c.utr,
+      proofImage: c.proofImage,
       thanked: Boolean(c.thankedAt),
       createdAt: c.createdAt.toISOString(),
     });
@@ -64,6 +66,7 @@ export function buildEntries(items: ItemView[], reservations: Reservation[], con
       method: "gift",
       status: r.status,
       utr: null,
+      proofImage: null,
       thanked: Boolean(r.thankedAt),
       createdAt: r.createdAt.toISOString(),
     });

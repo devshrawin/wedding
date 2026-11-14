@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileSpreadsheet } from "lucide-react";
-import { buttonClass } from "@/components/ui/button";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
 import { getManagedRegistry, requireUser } from "@/lib/auth";
 import { loadRegistryData } from "@/lib/data";
 import { buildEntries, guestLabel, methodLabel } from "@/lib/entries";
@@ -34,28 +34,29 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
   return (
     <div className="pb-10">
       <div className="no-print mb-5 flex flex-wrap items-center gap-2.5">
-        <Link href={`/dashboard/${slug}/shagun`} className={buttonClass({ variant: "ghost", size: "sm" })}>
-          <ArrowLeft className="size-4" /> {tr("Back", "वापस")}
-        </Link>
+        <Button variant="ghost" size="sm" href={`/dashboard/${slug}/shagun`} label={tr("Back", "वापस")} icon={<ArrowLeft className="size-4" aria-hidden />} />
         <span className="flex-1" />
-        <a href={`/api/ledger/${slug}`} className={buttonClass({ variant: "outline", size: "sm" })}>
-          <FileSpreadsheet className="size-4" /> {tr("Excel (CSV)", "Excel (CSV)")}
-        </a>
+        <Button size="sm" href={`/api/ledger/${slug}`} label={tr("Excel (CSV)", "Excel (CSV)")} icon={<FileSpreadsheet className="size-4" aria-hidden />} />
         <PrintButton label={tr("Save as PDF / Print", "PDF सेव करें / छापें")} />
       </div>
-      <p className="no-print mb-4 rounded-2xl bg-sand/70 p-3 text-[15px] text-muted">
-        {tr("Tip: in the print window choose “Save as PDF”. Switch to हिं at the top for a Hindi ledger.", "सुझाव: प्रिंट विंडो में “Save as PDF” चुनें। अंग्रेज़ी बही के लिए ऊपर EN चुनें।")}
-      </p>
+      <div className="no-print mb-4">
+        <Banner
+          status="info"
+          collapsible={false}
+          title={tr("In the print window, choose “Save as PDF”.", "प्रिंट विंडो में “Save as PDF” चुनें।")}
+          description={tr("Switch the language at the top for a Hindi ledger.", "अंग्रेज़ी बही के लिए ऊपर भाषा बदलें।")}
+        />
+      </div>
 
-      <article className="ledger mx-auto max-w-[210mm] rounded-sm border-[3px] border-double border-[#8c1d2f] bg-[#fffdf6] p-6 text-[#2a1a16] shadow-soft sm:p-10 print:border-[3px] print:shadow-none">
-        <header className="border-b-2 border-[#8c1d2f] pb-5 text-center">
-          <p className="text-lg font-semibold text-[#8c1d2f]">॥ श्री गणेशाय नमः ॥</p>
-          <div className="mt-1 flex items-center justify-center gap-6 text-sm font-bold text-[#b9812a]">
+      <article className="ledger mx-auto max-w-[210mm] rounded-sm border-[3px] border-double border-[#9B1C31] bg-[#fffdf6] p-6 text-[#2a1a16] shadow-md sm:p-10 print:border-[3px] print:shadow-none">
+        <header className="border-b-2 border-[#9B1C31] pb-5 text-center">
+          <p className="text-lg font-semibold text-[#9B1C31]">॥ श्री गणेशाय नमः ॥</p>
+          <div className="mt-1 flex items-center justify-center gap-6 text-sm font-bold text-[#85570f]">
             <span>शुभ</span>
             <span className="text-2xl" aria-hidden>ॐ</span>
             <span>लाभ</span>
           </div>
-          <h1 className="mt-3 text-3xl font-semibold text-[#8c1d2f] sm:text-4xl">{tr("Shagun Ledger", "शगुन बही")}</h1>
+          <h1 className="mt-3 text-3xl font-semibold text-[#9B1C31] sm:text-4xl">{tr("Shagun Ledger", "शगुन बही")}</h1>
           <p className="mt-2 font-display text-2xl font-semibold">
             {registry.partnerOne} & {registry.partnerTwo}
           </p>
@@ -63,11 +64,11 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
         </header>
 
         <section className="mt-6">
-          <h2 className="text-xl font-semibold text-[#8c1d2f]">{tr("Shagun received", "प्राप्त शगुन")}</h2>
+          <h2 className="text-xl font-semibold text-[#9B1C31]">{tr("Shagun received", "प्राप्त शगुन")}</h2>
           {cash.length ? (
             <table className="mt-3 w-full border-collapse text-[15px]">
               <thead>
-                <tr className="border-y-2 border-[#8c1d2f] text-left text-[13px] uppercase tracking-wide text-[#8c1d2f]">
+                <tr className="border-y-2 border-[#9B1C31] text-left text-[13px] uppercase tracking-wide text-[#9B1C31]">
                   <th className="w-10 py-2 pr-2">{tr("No.", "क्र.")}</th>
                   <th className="py-2 pr-2">{tr("Name", "नाम")}</th>
                   <th className="hidden py-2 pr-2 sm:table-cell print:table-cell">{tr("Place", "स्थान")}</th>
@@ -84,21 +85,21 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
                       {guestLabel(r, tr)}
                       <span className="block text-xs font-normal text-[#75645c]">{formatDate(r.createdAt, lang)}</span>
                     </td>
-                    <td className="hidden py-2 pr-2 sm:table-cell print:table-cell">{r.place ?? "—"}</td>
-                    <td className="hidden py-2 pr-2 sm:table-cell print:table-cell">{r.itemTitle ?? "—"}</td>
+                    <td className="hidden py-2 pr-2 sm:table-cell print:table-cell">{r.place ?? "-"}</td>
+                    <td className="hidden py-2 pr-2 sm:table-cell print:table-cell">{r.itemTitle ?? "-"}</td>
                     <td className="py-2 pr-2">{methodLabel(r, tr)}</td>
                     <td className="py-2 text-right font-semibold tabular-nums">{inr(r.amount)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-y-2 border-[#8c1d2f] text-lg font-bold">
+                <tr className="border-y-2 border-[#9B1C31] text-lg font-bold">
                   <td colSpan={2} className="py-3">
                     {tr("Total", "कुल योग")}
                   </td>
                   <td className="hidden sm:table-cell print:table-cell" colSpan={2} />
                   <td />
-                  <td className="py-3 text-right tabular-nums text-[#8c1d2f]">{inr(total) || "₹0"}</td>
+                  <td className="py-3 text-right tabular-nums text-[#9B1C31]">{inr(total) || "₹0"}</td>
                 </tr>
               </tfoot>
             </table>
@@ -109,10 +110,10 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
 
         {gifts.length > 0 && (
           <section className="mt-8">
-            <h2 className="text-xl font-semibold text-[#8c1d2f]">{tr("Gifts", "तोहफ़े")}</h2>
+            <h2 className="text-xl font-semibold text-[#9B1C31]">{tr("Gifts", "तोहफ़े")}</h2>
             <table className="mt-3 w-full border-collapse text-[15px]">
               <thead>
-                <tr className="border-y-2 border-[#8c1d2f] text-left text-[13px] uppercase tracking-wide text-[#8c1d2f]">
+                <tr className="border-y-2 border-[#9B1C31] text-left text-[13px] uppercase tracking-wide text-[#9B1C31]">
                   <th className="w-10 py-2 pr-2">{tr("No.", "क्र.")}</th>
                   <th className="py-2 pr-2">{tr("Name", "नाम")}</th>
                   <th className="py-2 pr-2">{tr("Gift", "तोहफ़ा")}</th>
@@ -124,8 +125,8 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
                   <tr key={r.id} className="border-b border-dashed border-[#d9c7a8] align-top" style={{ breakInside: "avoid" }}>
                     <td className="py-2 pr-2 text-[#75645c]">{i + 1}</td>
                     <td className="py-2 pr-2 font-semibold">{guestLabel(r, tr)}</td>
-                    <td className="py-2 pr-2">{r.itemTitle ?? "—"}</td>
-                    <td className="py-2 text-right tabular-nums">{r.value ? inr(r.value) : "—"}</td>
+                    <td className="py-2 pr-2">{r.itemTitle ?? "-"}</td>
+                    <td className="py-2 text-right tabular-nums">{r.value ? inr(r.value) : "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -137,7 +138,7 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
           <span>
             {tr("Prepared on", "तैयार किया गया:")} {formatDate(new Date().toISOString(), lang)}
           </span>
-          <span>giftr</span>
+          <span>Giftr</span>
         </footer>
       </article>
     </div>

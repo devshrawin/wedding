@@ -1,16 +1,23 @@
-import Link from "next/link";
+import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
+import { EmptyState } from "@astryxdesign/core/EmptyState";
 import { Mark } from "@/components/brand";
-import { buttonClass } from "@/components/ui/button";
+import { PageShell } from "@/components/page-shell";
 
 export default function NotFound() {
   return (
-    <main className="bg-festive grid min-h-dvh place-items-center px-6 text-center">
-      <div>
-        <Mark className="mx-auto size-14" />
-        <h1 className="mt-5 text-3xl font-semibold">Page not found · पेज नहीं मिला</h1>
-        <p className="mt-2 text-muted">The link may be mistyped, or the registry was removed.<br />लिंक गलत हो सकता है, या रजिस्ट्री हटा दी गई है।</p>
-        <Link href="/" className={buttonClass({ className: "mt-6" })}>Go home · होम पर जाएँ</Link>
+    <PageShell>
+      <div className="pt-8">
+        <Card padding={6}>
+          <EmptyState
+            headingLevel={1}
+            icon={<Mark className="size-14" />}
+            title="Page not found · पेज नहीं मिला"
+            description="The link may be mistyped, or the registry was removed. · लिंक गलत हो सकता है, या रजिस्ट्री हटा दी गई है।"
+            actions={<Button variant="primary" href="/" label="Go home · होम पर जाएँ" />}
+          />
+        </Card>
       </div>
-    </main>
+    </PageShell>
   );
 }

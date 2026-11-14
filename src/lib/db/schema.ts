@@ -135,7 +135,7 @@ export const contributions = pgTable(
     method: text("method").notNull(), // upi | razorpay | cash
     status: text("status").notNull().default("pending"), // initiated | pending | confirmed | rejected
     utr: text("utr"),
-    proofImage: text("proof_image"), // "/img/<id>" — optional payment screenshot from the guest
+    proofImage: text("proof_image"), // "/img/<id>", optional payment screenshot from the guest
     razorpayOrderId: text("razorpay_order_id"),
     razorpayPaymentId: text("razorpay_payment_id"),
     thankedAt: timestamp("thanked_at", { withTimezone: true }),

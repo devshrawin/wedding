@@ -9,7 +9,7 @@ import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/ids";
 import { allow } from "@/lib/rate-limit";
 import { fail, type Result } from "@/lib/result";
-import { isValidUpiId, normalizePhone, slugify, THEMES } from "@/lib/utils";
+import { isValidUpiId, normalizePhone, slugBase, THEMES } from "@/lib/utils";
 
 const name = z.string().trim().min(1).max(40);
 const optional = (max: number) =>
@@ -56,8 +56,7 @@ export async function createRegistry(input: z.input<typeof createSchema>): Promi
   const db = await getDb();
 
   // Keep slugs short enough for getRegistryBySlug (≤ 40 chars) even with a suffix.
-  const part = (n: string) => slugify(n).split("-")[0].slice(0, 14);
-  const base = [part(d.partnerOne), part(d.partnerTwo)].filter(Boolean).join("-") || "shaadi";
+  const base = slugBase(d.partnerOne, d.partnerTwo);
   let slug = base;
   for (let i = 0; i < 6; i++) {
     const [clash] = await db.select({ id: schema.registries.id }).from(schema.registries).where(eq(schema.registries.slug, slug)).limit(1);

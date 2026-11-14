@@ -2,16 +2,20 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@astryxdesign/core/Button";
+import { Icon } from "@astryxdesign/core/Icon";
+import { Selector } from "@astryxdesign/core/Selector";
+import { TextInput } from "@astryxdesign/core/TextInput";
 import { NotebookPen } from "lucide-react";
 import { addCashEntry } from "@/app/actions/shagun";
 import { useTr } from "@/components/lang";
-import { Button } from "@/components/ui/button";
-import { Field, toast } from "@/components/ui/bits";
+import { toast } from "@/components/ui/feedback";
+import { AmountChips } from "@/components/ui/kit";
 import { Sheet } from "@/components/ui/sheet";
 import { errorText } from "@/lib/result";
 import { SHAGUN_AMOUNTS, inr } from "@/lib/utils";
 
-const blank = { name: "", amount: "", place: "", phone: "", note: "", itemId: "" };
+const blank = { name: "", amount: "", place: "", phone: "", itemId: "" };
 
 /** The chandlo notebook, digitised: jot down envelopes received at the venue. */
 export function CashEntryButton({ slug, funds }: { slug: string; funds: { id: string; title: string }[] }) {
@@ -25,24 +29,24 @@ export function CashEntryButton({ slug, funds }: { slug: string; funds: { id: st
 
   const save = () =>
     start(async () => {
-      const res = await addCashEntry(slug, { name: f.name, amount: Number(f.amount), place: f.place, phone: f.phone, note: f.note, itemId: f.itemId || null });
+      const res = await addCashEntry(slug, { name: f.name, amount: Number(f.amount), place: f.place, phone: f.phone, itemId: f.itemId || null });
       if (!res.ok) return toast(errorText(res.error, tr), "error");
-      toast(tr(`Saved: ${f.name} — ${inr(Number(f.amount))}`, `दर्ज हुआ: ${f.name} — ${inr(Number(f.amount))}`));
+      toast(tr(`Saved: ${f.name}, ${inr(Number(f.amount))}`, `दर्ज हुआ: ${f.name}, ${inr(Number(f.amount))}`));
       setCount((c) => c + 1);
-      setF({ ...blank, itemId: f.itemId }); // stay open: at the counter, entries come one after another
+      setF({ ...blank, itemId: f.itemId }); // stay open: at the counter, envelopes come one after another
       router.refresh();
     });
 
   return (
     <>
-      <Button onClick={() => setOpen(true)}>
-        <NotebookPen className="size-5" /> {tr("Add cash entry", "नकद एंट्री जोड़ें")}
-      </Button>
+      <Button variant="primary" width="100%" label={tr("Add cash entry", "नकद एंट्री जोड़ें")} icon={<Icon icon={NotebookPen} />} onClick={() => setOpen(true)} />
       <Sheet
         open={open}
         onOpenChange={setOpen}
+        purpose="form"
+        height="tall"
         title={tr("Cash / envelope entry", "नकद / लिफ़ाफ़ा एंट्री")}
-        description={tr("Note down shagun received in person — just like the chandlo notebook.", "हाथ में मिला शगुन यहाँ लिखें — बिल्कुल चांदलो की कॉपी की तरह।")}
+        description={tr("Note down shagun received in person, just like the chandlo notebook.", "हाथ में मिला शगुन यहाँ लिखें, बिल्कुल चांदलो की कॉपी की तरह।")}
       >
         <form
           className="space-y-4 pb-2"
@@ -51,46 +55,26 @@ export function CashEntryButton({ slug, funds }: { slug: string; funds: { id: st
             save();
           }}
         >
-          <Field label={tr("Name", "नाम")}>
-            <input className="input" value={f.name} maxLength={60} onChange={(e) => set({ name: e.target.value })} placeholder={tr("Sharma ji (Mama ji)", "शर्मा जी (मामा जी)")} autoFocus />
-          </Field>
-          <Field label={tr("Amount", "राशि")}>
-            <div className="relative">
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted">₹</span>
-              <input className="input pl-9 text-xl font-semibold" inputMode="numeric" value={f.amount} onChange={(e) => set({ amount: e.target.value.replace(/\D/g, "").slice(0, 8) })} placeholder="1101" />
-            </div>
-            <div className="no-scrollbar -mx-1 mt-2 flex gap-2 overflow-x-auto px-1">
-              {SHAGUN_AMOUNTS.map((a) => (
-                <button key={a} type="button" className="chip h-10" aria-pressed={f.amount === String(a)} onClick={() => set({ amount: String(a) })}>
-                  {inr(a)}
-                </button>
-              ))}
-            </div>
-          </Field>
+          <TextInput label={tr("Name", "नाम")} width="100%" size="lg" value={f.name} onChange={(v) => set({ name: v.slice(0, 60) })} placeholder={tr("Sharma ji (Mama ji)", "शर्मा जी (मामा जी)")} hasAutoFocus />
+          <TextInput label={tr("Amount (₹)", "राशि (₹)")} width="100%" size="lg" inputMode="numeric" value={f.amount} onChange={(v) => set({ amount: v.replace(/\D/g, "").slice(0, 8) })} placeholder="1101" />
+          <AmountChips amounts={SHAGUN_AMOUNTS.slice(0, 6)} value={Number(f.amount)} onChange={(n) => set({ amount: String(n) })} />
           <div className="grid grid-cols-2 gap-3">
-            <Field label={tr("Village / city", "गाँव / शहर")} optional>
-              <input className="input" value={f.place} maxLength={60} onChange={(e) => set({ place: e.target.value })} placeholder={tr("Udaipur", "उदयपुर")} />
-            </Field>
-            <Field label={tr("Mobile", "मोबाइल")} optional>
-              <input className="input" type="tel" inputMode="numeric" value={f.phone} maxLength={14} onChange={(e) => set({ phone: e.target.value })} placeholder="98765 43210" />
-            </Field>
+            <TextInput label={tr("Village / city", "गाँव / शहर")} isOptional width="100%" value={f.place} onChange={(v) => set({ place: v.slice(0, 60) })} placeholder={tr("Udaipur", "उदयपुर")} />
+            <TextInput label={tr("Mobile", "मोबाइल")} isOptional width="100%" type="tel" inputMode="numeric" value={f.phone} onChange={(v) => set({ phone: v.slice(0, 14) })} placeholder="98765 43210" />
           </div>
           {funds.length > 0 && (
-            <Field label={tr("Towards", "किसके लिए")} optional>
-              <select className="input" value={f.itemId} onChange={(e) => set({ itemId: e.target.value })}>
-                <option value="">{tr("General shagun", "सामान्य शगुन")}</option>
-                {funds.map((x) => (
-                  <option key={x.id} value={x.id}>
-                    {x.title}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <Selector
+              label={tr("Towards", "किसके लिए")}
+              isOptional
+              width="100%"
+              value={f.itemId || "general"}
+              options={[{ value: "general", label: tr("General shagun", "सामान्य शगुन") }, ...funds.map((x) => ({ value: x.id, label: x.title }))]}
+              onChange={(v) => set({ itemId: v === "general" ? "" : v })}
+              presentation="adaptive"
+            />
           )}
-          <Button type="submit" size="lg" block loading={pending} disabled={!f.name.trim() || !Number(f.amount)}>
-            {tr("Save & add next", "सेव करें और अगली जोड़ें")}
-          </Button>
-          {count > 0 && <p className="text-center text-[15px] font-semibold text-leaf">{tr(`${count} entr${count > 1 ? "ies" : "y"} saved`, `${count} एंट्री दर्ज हुईं`)}</p>}
+          <Button type="submit" variant="primary" size="lg" width="100%" isLoading={pending} isDisabled={!f.name.trim() || !Number(f.amount)} label={tr("Save & add next", "सेव करें और अगली जोड़ें")} />
+          {count > 0 && <p className="text-center text-[15px] font-semibold text-leaf" role="status">{tr(`${count} entr${count > 1 ? "ies" : "y"} saved`, `${count} एंट्री दर्ज हुईं`)}</p>}
         </form>
       </Sheet>
     </>

@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
-import { Logo } from "@/components/brand";
-import { LangToggle } from "@/components/lang";
+import { PageShell } from "@/components/page-shell";
 import { getUser } from "@/lib/auth";
 import { LoginForm } from "./login-form";
 
@@ -14,14 +13,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const next = safeNext((await searchParams).next);
   if (await getUser()) redirect(next);
   return (
-    <div className="bg-festive min-h-dvh">
-      <header className="mx-auto flex max-w-5xl items-center justify-between px-5 py-4">
-        <Logo />
-        <LangToggle />
-      </header>
-      <main className="mx-auto max-w-md px-5 pb-16 pt-6">
+    <PageShell>
+      <div className="pt-4">
         <LoginForm next={next} />
-      </main>
-    </div>
+      </div>
+    </PageShell>
   );
 }

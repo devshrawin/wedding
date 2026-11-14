@@ -1,13 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Card } from "@astryxdesign/core/Card";
+import { Heading } from "@astryxdesign/core/Heading";
+import { Text } from "@astryxdesign/core/Text";
 import { Lock } from "lucide-react";
 import { Mark, Toran } from "@/components/brand";
 import { LangToggle } from "@/components/lang";
 import { checkAccess, getGuestKey } from "@/lib/auth";
 import { getRegistryBySlug, loadRegistryData, razorpayEnabled } from "@/lib/data";
 import { getTr } from "@/lib/i18n";
-import { daysUntil, formatDate, themeOf } from "@/lib/utils";
+import { registryThemeStyle } from "@/lib/theme-style";
+import { daysUntil, formatDate } from "@/lib/utils";
 import { GuestRegistry, type GuestItem } from "./guest-registry";
 import { UnlockForm } from "./unlock-form";
 
@@ -18,7 +22,7 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   if (!registry) return { title: "Registry not found" };
   // Private registries reveal nothing in link previews.
   const open = registry.visibility === "link";
-  const title = open ? `${registry.partnerOne} & ${registry.partnerTwo} — Wedding Registry` : "Private wedding registry";
+  const title = open ? `${registry.partnerOne} & ${registry.partnerTwo}: Wedding Registry` : "Private wedding registry";
   return {
     title,
     description: "Bless the couple: pick a gift they'll love, or send shagun by UPI.",
@@ -32,30 +36,33 @@ export default async function GuestPage({ params }: Params) {
   const registry = await getRegistryBySlug(slug);
   if (!registry) notFound();
   const [{ tr, lang }, access] = await Promise.all([getTr(), checkAccess(registry)]);
-  const theme = themeOf(registry.theme);
-  const style = { "--primary": theme.primary, "--primary-soft": theme.soft, "--primary-deep": theme.deep } as React.CSSProperties;
+  const style = registryThemeStyle(registry.theme);
 
   if (!access.allowed) {
     return (
       <div style={style} className="bg-festive min-h-dvh">
-        <div className="mx-auto flex max-w-md justify-end px-5 pt-4">
+        <div className="mx-auto flex max-w-md justify-end px-4 pt-4">
           <LangToggle />
         </div>
-        <main className="mx-auto max-w-md px-5 pb-16 pt-10 text-center">
-          <span className="mx-auto grid size-16 place-items-center rounded-full bg-primary-soft text-primary">
-            <Lock className="size-7" />
-          </span>
-          <h1 className="mt-5 text-3xl font-semibold">{tr("This registry is private", "यह रजिस्ट्री निजी है")}</h1>
-          {registry.visibility === "password" ? (
-            <>
-              <p className="mt-2 text-muted">{tr("Enter the password the couple shared with you.", "जोड़े का बताया हुआ पासवर्ड डालें।")}</p>
-              <UnlockForm slug={slug} />
-            </>
-          ) : (
-            <p className="mt-2 text-muted">
-              {tr("It opens only with a personal invite link. Please use the link the couple sent you on WhatsApp.", "यह सिर्फ़ निजी आमंत्रण लिंक से खुलती है। कृपया जोड़े का WhatsApp पर भेजा हुआ लिंक खोलें।")}
-            </p>
-          )}
+        <main className="mx-auto max-w-md px-4 pb-16 pt-8">
+          <Card padding={6} elevation="low">
+            <div className="text-center">
+              <span className="mx-auto grid size-16 place-items-center rounded-full bg-brand-soft text-accent">
+                <Lock className="size-7" aria-hidden />
+              </span>
+              <div className="mt-4">
+                <Heading level={1} justify="center">
+                  {tr("This registry is private", "यह रजिस्ट्री निजी है")}
+                </Heading>
+              </div>
+              <Text as="p" type="supporting" display="block" justify="center">
+                {registry.visibility === "password"
+                  ? tr("Enter the password the couple shared with you.", "जोड़े का बताया हुआ पासवर्ड डालें।")
+                  : tr("It opens only with a personal invite link. Please use the link the couple sent you on WhatsApp.", "यह सिर्फ़ निजी आमंत्रण लिंक से खुलती है। कृपया जोड़े का WhatsApp पर भेजा हुआ लिंक खोलें।")}
+              </Text>
+            </div>
+            {registry.visibility === "password" && <UnlockForm slug={slug} />}
+          </Card>
         </main>
       </div>
     );
@@ -87,7 +94,9 @@ export default async function GuestPage({ params }: Params) {
         remainingQty: i.remainingQty,
         state,
         canReserve: i.kind === "product" && !i.fulfilled && !hasChipIns,
-        canChipIn: i.kind === "fund" || (i.allowChipIn && !i.fulfilled && i.reservedQty === 0),
+        canChipIn: i.kind === "fund" || (i.allowChipIn && !i.fulfilled && i.reservedQty === 0 && (i.chipInLeft ?? 0) > 0),
+        // Chip-in gifts always show what's left, so guests don't over-give.
+        chipInLeft: i.kind === "product" && i.allowChipIn ? i.chipInLeft : null,
         progress: registry.showAmounts && i.target ? i.progress : null,
         raised: registry.showAmounts ? i.raised : null,
         target: i.kind === "fund" || i.allowChipIn ? i.target : null,
@@ -99,40 +108,35 @@ export default async function GuestPage({ params }: Params) {
   const days = daysUntil(registry.weddingDate);
 
   return (
-    <div style={style} className="min-h-dvh bg-cream">
+    <div style={style} className="min-h-dvh bg-body">
       {isManager && (
-        <div className="bg-ink px-4 py-2.5 text-center text-[15px] text-white">
+        <div className="bg-[var(--color-background-inverted)] px-4 py-2.5 text-center text-[15px] text-white">
           {tr("You're viewing your page as guests see it.", "आप अपना पेज वैसे देख रहे हैं जैसे मेहमान देखते हैं।")}{" "}
-          <Link href={`/dashboard/${slug}`} className="font-semibold underline">
+          <Link href={`/dashboard/${slug}`} className="font-semibold underline underline-offset-4">
             {tr("Back to dashboard", "डैशबोर्ड पर लौटें")}
           </Link>
         </div>
       )}
 
-      <header className="relative overflow-hidden bg-primary px-5 pb-10 pt-4 text-center text-white">
-        <div className="absolute inset-0 opacity-[0.07]" style={{ backgroundImage: "radial-gradient(circle at 1px 1px, #fff 1.5px, transparent 0)", backgroundSize: "22px 22px" }} aria-hidden />
+      <header className="bg-dots relative overflow-hidden bg-[var(--color-accent)] px-4 pb-12 pt-4 text-center text-white">
         <div className="relative mx-auto flex max-w-2xl justify-end">
-          <LangToggle className="border-white/30 bg-white/95" />
+          <span className="rounded-full bg-white/95">
+            <LangToggle />
+          </span>
         </div>
         <div className="relative mx-auto max-w-2xl">
-          <Toran className="mx-auto mt-2 h-6 w-52 text-white" />
-          {registry.photo ? (
-            <img src={registry.photo} alt="" className="mx-auto mt-5 size-32 rounded-full border-4 border-white/90 object-cover shadow-lg" />
-          ) : null}
-          <p className="mt-5 text-[13px] font-bold uppercase tracking-[0.22em] text-white/75">{tr("Shubh Vivah", "॥ शुभ विवाह ॥")}</p>
-          <h1 className="mt-2 text-[2.5rem] font-semibold leading-tight sm:text-5xl">
+          <Toran className="mx-auto mt-2 h-6 w-56 text-white" />
+          {registry.photo ? <img src={registry.photo} alt={tr(`${registry.partnerOne} and ${registry.partnerTwo}`, `${registry.partnerOne} और ${registry.partnerTwo}`)} className="mx-auto mt-5 size-32 rounded-full border-4 border-white/90 object-cover shadow-lg" /> : null}
+          <p className="mt-5 text-[13px] font-bold uppercase tracking-[0.24em] text-white/80">{tr("Shubh Vivah", "॥ शुभ विवाह ॥")}</p>
+          <h1 className="mt-2 font-display text-[2.6rem] font-semibold leading-tight text-white sm:text-5xl">
             {registry.partnerOne} <span className="text-marigold">&</span> {registry.partnerTwo}
           </h1>
-          {(registry.weddingDate || registry.city) && (
-            <p className="mt-2 text-lg text-white/85">{[formatDate(registry.weddingDate, lang), registry.city].filter(Boolean).join(" · ")}</p>
-          )}
+          {(registry.weddingDate || registry.city) && <p className="mt-2 text-lg text-white/90">{[formatDate(registry.weddingDate, lang), registry.city].filter(Boolean).join(" · ")}</p>}
           {days != null && days > 0 && (
-            <p className="mt-3 inline-block rounded-full bg-white/15 px-4 py-1.5 text-[15px] font-semibold">
-              {tr(`${days} day${days > 1 ? "s" : ""} to go`, `${days} दिन बाकी`)}
-            </p>
+            <p className="mt-3 inline-block rounded-full bg-white/15 px-4 py-1.5 text-[15px] font-semibold">{tr(`${days} day${days > 1 ? "s" : ""} to go`, `${days} दिन बाकी`)}</p>
           )}
           {access.inviteName && (
-            <p className="mt-4 text-[17px] text-white/90">
+            <p className="mt-4 text-[17px] text-white/95">
               {tr(`Welcome, ${access.inviteName}`, `${access.inviteName}, आपका स्वागत है`)} 🙏
             </p>
           )}
@@ -140,14 +144,16 @@ export default async function GuestPage({ params }: Params) {
       </header>
 
       <main className="mx-auto max-w-2xl px-4 pb-16">
-        <div className="card relative -mt-5 p-5 text-center">
-          <p className="text-[17px] leading-relaxed text-ink">
-            {registry.note ||
-              tr(
-                "Your presence is the greatest gift. If you'd still like to bless us, here are a few things that would help us start our new home.",
-                "आपका आना ही सबसे बड़ा तोहफ़ा है। फिर भी अगर आप आशीर्वाद देना चाहें, तो ये कुछ चीज़ें हमारे नए घर की शुरुआत में काम आएँगी।",
-              )}
-          </p>
+        <div className="relative -mt-6">
+          <Card padding={5} elevation="low">
+            <p className="text-center text-[17px] leading-relaxed text-primary">
+              {registry.note ||
+                tr(
+                  "Your presence is the greatest gift. If you'd still like to bless us, here are a few things that would help us start our new home.",
+                  "आपका आना ही सबसे बड़ा तोहफ़ा है। फिर भी अगर आप आशीर्वाद देना चाहें, तो ये कुछ चीज़ें हमारे नए घर की शुरुआत में काम आएँगी।",
+                )}
+            </p>
+          </Card>
         </div>
 
         <GuestRegistry
@@ -160,10 +166,10 @@ export default async function GuestPage({ params }: Params) {
         />
       </main>
 
-      <footer className="border-t border-line px-5 py-8 text-center">
-        <Link href="/" className="inline-flex items-center gap-2 text-[15px] text-muted">
+      <footer className="border-t border-border bg-surface px-4 py-8 text-center">
+        <Link href="/" className="inline-flex items-center gap-2 text-[15px] text-secondary underline-offset-4 hover:underline">
           <Mark className="size-6" />
-          {tr("Made with Giftr — create your own registry, free", "Giftr से बना — अपनी रजिस्ट्री मुफ़्त बनाएँ")}
+          {tr("Made with Giftr. Create your own registry for free", "Giftr से बना। अपनी रजिस्ट्री मुफ़्त बनाएँ")}
         </Link>
       </footer>
     </div>

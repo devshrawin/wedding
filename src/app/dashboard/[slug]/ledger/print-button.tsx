@@ -1,12 +1,9 @@
 "use client";
 
+import { Button } from "@astryxdesign/core/Button";
+import { Icon } from "@astryxdesign/core/Icon";
 import { Printer } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 export function PrintButton({ label }: { label: string }) {
-  return (
-    <Button size="sm" onClick={() => window.print()}>
-      <Printer className="size-4" /> {label}
-    </Button>
-  );
+  return <Button variant="primary" size="sm" label={label} icon={<Icon icon={Printer} />} onClick={() => window.print()} />;
 }

@@ -2,9 +2,10 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { Button } from "@astryxdesign/core/Button";
+import { TextInput } from "@astryxdesign/core/TextInput";
 import { unlockRegistry } from "@/app/actions/guest";
 import { useTr } from "@/components/lang";
-import { Button } from "@/components/ui/button";
 import { errorText } from "@/lib/result";
 
 export function UnlockForm({ slug }: { slug: string }) {
@@ -15,7 +16,7 @@ export function UnlockForm({ slug }: { slug: string }) {
   const [pending, start] = useTransition();
   return (
     <form
-      className="card mt-6 p-5 text-left"
+      className="mt-6 space-y-4"
       onSubmit={(e) => {
         e.preventDefault();
         setError(null);
@@ -26,14 +27,19 @@ export function UnlockForm({ slug }: { slug: string }) {
         });
       }}
     >
-      <label className="block">
-        <span className="label">{tr("Password", "पासवर्ड")}</span>
-        <input className="input h-14 text-center text-xl tracking-wide" value={password} onChange={(e) => setPassword(e.target.value)} autoCapitalize="none" autoComplete="off" autoFocus />
-      </label>
-      {error && <p className="mt-3 text-[15px] font-semibold text-red-700" role="alert">{error}</p>}
-      <Button type="submit" size="lg" block className="mt-4" loading={pending} disabled={!password.trim()}>
-        {tr("Open registry", "रजिस्ट्री खोलें")}
-      </Button>
+      <TextInput
+        label={tr("Password", "पासवर्ड")}
+        width="100%"
+        size="lg"
+        value={password}
+        onChange={setPassword}
+        autoCapitalize="none"
+        autoComplete="off"
+        hasAutoFocus
+        status={error ? { type: "error", message: error } : undefined}
+        statusVariant="detached"
+      />
+      <Button type="submit" variant="primary" size="lg" width="100%" isLoading={pending} isDisabled={!password.trim()} label={tr("Open registry", "रजिस्ट्री खोलें")} />
     </form>
   );
 }

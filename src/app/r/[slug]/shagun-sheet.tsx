@@ -3,11 +3,18 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import QRCode from "qrcode";
-import { ArrowLeft, Check, CreditCard, HandHeart, ShieldCheck, Smartphone } from "lucide-react";
+import { Banner } from "@astryxdesign/core/Banner";
+import { Button } from "@astryxdesign/core/Button";
+import { Card } from "@astryxdesign/core/Card";
+import { Field } from "@astryxdesign/core/Field";
+import { Icon } from "@astryxdesign/core/Icon";
+import { Text } from "@astryxdesign/core/Text";
+import { TextInput } from "@astryxdesign/core/TextInput";
+import { ArrowLeft, Check, CreditCard, HandHeart, ShieldCheck, Smartphone, Sparkles } from "lucide-react";
 import { confirmRazorpay, contribute, startRazorpay } from "@/app/actions/guest";
 import { useTr } from "@/components/lang";
-import { Button, buttonClass } from "@/components/ui/button";
-import { CopyButton, toast } from "@/components/ui/bits";
+import { CopyButton, toast } from "@/components/ui/feedback";
+import { AmountChips, PhotoPicker } from "@/components/ui/kit";
 import { Sheet } from "@/components/ui/sheet";
 import { errorText } from "@/lib/result";
 import { buildUpiLink, inr, shagunSuggestions, toShagunAmount } from "@/lib/utils";
@@ -57,15 +64,18 @@ export function ShagunSheet({
   const [guest, setGuest] = useState<GuestInfo>({ name: guestName ?? "", phone: "", message: "", anonymous: false });
   const [doneMethod, setDoneMethod] = useState<"upi" | "cash" | "razorpay">("upi");
   const [utr, setUtr] = useState("");
+  const [proof, setProof] = useState<string | null>(null);
   const [qr, setQr] = useState<string | null>(null);
   const [touch, setTouch] = useState(false);
   const [pending, start] = useTransition();
 
+  const cap = item.chipInLeft; // chip-in gifts can't be over-funded
   const amount = Number(amountText) || 0;
-  const suggestions = shagunSuggestions(item.kind === "fund" ? item.target : item.price);
+  const suggestions = shagunSuggestions(item.kind === "fund" ? item.target : item.price).filter((a) => cap == null || a <= cap);
   const plusOne = toShagunAmount(amount);
+  const overCap = cap != null && amount > cap;
   const identityOk = guest.anonymous || guest.name.trim().length > 0;
-  const ready = amount >= 1 && amount <= 1_000_000 && identityOk;
+  const ready = amount >= 1 && amount <= 1_000_000 && !overCap && identityOk;
   const upiLink = upi ? buildUpiLink({ pa: upi.id, pn: upi.name, am: amount, tn: `Shagun for ${couple}`.slice(0, 50) }) : "";
 
   useEffect(() => {
@@ -93,8 +103,12 @@ export function ShagunSheet({
 
   const record = (method: "upi" | "cash") =>
     start(async () => {
-      const res = await contribute(slug, { itemId: item.id, amount, method, utr: method === "upi" ? utr : undefined, ...guest });
-      if (!res.ok) return toast(errorText(res.error, tr), "error");
+      const res = await contribute(slug, { itemId: item.id, amount, method, utr: method === "upi" ? utr : undefined, proof: method === "upi" && proof ? proof : undefined, ...guest });
+      if (!res.ok) {
+        toast(res.error === "unavailable" && cap != null ? tr("Someone just chipped in. Please choose a smaller amount.", "किसी ने अभी योगदान दिया है, कृपया कम राशि चुनें।") : errorText(res.error, tr), "error");
+        if (res.error === "unavailable") router.refresh();
+        return;
+      }
       finish(method);
     });
 
@@ -111,23 +125,36 @@ export function ShagunSheet({
         name: couple,
         description: item.title,
         prefill: { name: guest.anonymous ? "" : guest.name, contact: guest.anonymous ? "" : guest.phone },
-        theme: { color: getComputedStyle(document.documentElement).getPropertyValue("--primary").trim() || "#8c1d2f" },
+        theme: { color: getComputedStyle(document.documentElement).getPropertyValue("--color-accent").trim() || "#9B1C31" },
         handler: async (r: RazorpayHandlerResponse) => {
           const ok = await confirmRazorpay({ orderId: r.razorpay_order_id, paymentId: r.razorpay_payment_id, signature: r.razorpay_signature });
           if (ok.ok) finish("razorpay");
-          else toast(tr("Payment received — it will show up shortly.", "भुगतान मिल गया — थोड़ी देर में दिखेगा।"));
+          else toast(tr("Payment received. It will show up shortly.", "भुगतान मिल गया, थोड़ी देर में दिखेगा।"));
         },
       }).open();
     });
 
   const title =
-    step === "done" ? tr("Thank you! 🙏", "धन्यवाद! 🙏") : step === "upi" ? tr(`Pay ${inr(amount)} by UPI`, `UPI से ${inr(amount)} भेजें`) : item.kind === "fund" ? item.title : tr("Chip in for this gift", "इस तोहफ़े में योगदान दें");
+    step === "done"
+      ? tr("Thank you! 🙏", "धन्यवाद! 🙏")
+      : step === "upi"
+        ? tr(`Pay ${inr(amount)} by UPI`, `UPI से ${inr(amount)} भेजें`)
+        : item.kind === "fund"
+          ? item.title
+          : tr("Chip in for this gift", "इस तोहफ़े में योगदान दें");
 
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()} title={title} description={step === "amount" && item.kind === "product" ? item.title : undefined}>
+    <Sheet
+      open
+      onOpenChange={(o) => !o && onClose()}
+      title={title}
+      description={step === "amount" && item.kind === "product" ? item.title : undefined}
+      purpose={step === "done" ? "info" : "form"}
+      height={step === "done" ? "hug" : "tall"}
+    >
       {step === "amount" && (
         <form
-          className="pb-2"
+          className="space-y-5 pb-2"
           onSubmit={(e) => {
             e.preventDefault();
             if (!ready) return;
@@ -136,111 +163,140 @@ export function ShagunSheet({
             else record("cash");
           }}
         >
-          <span className="label">{tr("Choose an amount", "राशि चुनें")}</span>
-          <div className="grid grid-cols-3 gap-2">
-            {suggestions.map((a) => (
-              <button key={a} type="button" aria-pressed={amount === a} onClick={() => setAmountText(String(a))} className="chip h-13 justify-center px-2 text-[17px]">
-                {inr(a)}
-              </button>
-            ))}
-            <div className="relative col-span-3 sm:col-span-1">
-              <span className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-muted">₹</span>
-              <input
-                className="input pl-9 text-lg font-semibold"
+          <Field label={tr("Choose an amount", "राशि चुनें")} inputID="shagun-amount" isGroupLabel description={cap != null ? tr(`${inr(cap)} still needed for this gift`, `इस तोहफ़े के लिए ${inr(cap)} बाकी`) : undefined}>
+            <div className="space-y-2.5">
+              <AmountChips amounts={cap != null && !suggestions.includes(cap) ? [...suggestions.slice(0, 5), cap] : suggestions} value={amount} onChange={(n) => setAmountText(String(n))} />
+              <TextInput
+                label={tr("Other amount (₹)", "अन्य राशि (₹)")}
+                width="100%"
+                size="lg"
                 inputMode="numeric"
-                aria-label={tr("Other amount", "अन्य राशि")}
-                placeholder={tr("Other amount", "अन्य राशि")}
-                value={suggestions.includes(amount) ? "" : amountText}
-                onChange={(e) => setAmountText(e.target.value.replace(/\D/g, "").slice(0, 7))}
+                placeholder={tr("Type any amount", "कोई भी राशि लिखें")}
+                value={amountText}
+                onChange={(v) => setAmountText(v.replace(/\D/g, "").slice(0, 7))}
+                status={overCap ? { type: "error", message: tr(`Only ${inr(cap)} is still needed`, `सिर्फ़ ${inr(cap)} बाकी है`) } : undefined}
+                statusVariant="detached"
               />
             </div>
-          </div>
-          {plusOne !== amount && (
-            <button type="button" onClick={() => setAmountText(String(plusOne))} className="mt-2.5 flex min-h-11 w-full items-center gap-2 rounded-2xl bg-amber-50 px-4 py-2 text-left text-[15px] font-semibold text-amber-900">
-              <span aria-hidden>✨</span>
-              {tr(`Make it ${inr(plusOne)} — the extra ₹1 is for good luck`, `${inr(plusOne)} कर दें — ऊपर का ₹1 शुभ माना जाता है`)}
-            </button>
+          </Field>
+          {plusOne !== amount && (cap == null || plusOne <= cap) && (
+            <Button width="100%" icon={<Icon icon={Sparkles} />} label={tr(`Make it ${inr(plusOne)}. The extra ₹1 is for good luck`, `${inr(plusOne)} कर दें, ऊपर का ₹1 शुभ माना जाता है`)} onClick={() => setAmountText(String(plusOne))} />
           )}
 
-          <div className="mt-5">
-            <GuestFields value={guest} onChange={(p) => setGuest((g) => ({ ...g, ...p }))} />
-          </div>
+          <GuestFields value={guest} onChange={(p) => setGuest((g) => ({ ...g, ...p }))} />
 
-          <div className="mt-5 space-y-2.5">
-            {upi && (
-              <Button type="submit" size="lg" block disabled={!ready}>
-                <Smartphone className="size-5" /> {amount ? tr(`Pay ${inr(amount)} by UPI`, `UPI से ${inr(amount)} भेजें`) : tr("Pay by UPI", "UPI से भेजें")}
-              </Button>
-            )}
+          <div className="space-y-2.5">
+            {upi && <Button type="submit" variant="primary" size="lg" width="100%" isDisabled={!ready} label={amount ? tr(`Pay ${inr(amount)} by UPI`, `UPI से ${inr(amount)} भेजें`) : tr("Pay by UPI", "UPI से भेजें")} icon={<Icon icon={Smartphone} />} />}
             {razorpay && (
-              <Button type={upi ? "button" : "submit"} variant={upi ? "outline" : "primary"} size="lg" block disabled={!ready} loading={pending} onClick={upi ? payOnline : undefined}>
-                <CreditCard className="size-5" /> {tr("Card / Netbanking / Wallet", "कार्ड / नेटबैंकिंग / वॉलेट")}
-              </Button>
+              <Button
+                type={upi ? "button" : "submit"}
+                variant={upi ? "secondary" : "primary"}
+                size="lg"
+                width="100%"
+                isDisabled={!ready}
+                isLoading={pending}
+                label={tr("Card / Netbanking / Wallet", "कार्ड / नेटबैंकिंग / वॉलेट")}
+                icon={<Icon icon={CreditCard} />}
+                onClick={upi ? payOnline : undefined}
+              />
             )}
-            <Button type={!upi && !razorpay ? "submit" : "button"} variant={!upi && !razorpay ? "primary" : "ghost"} size="lg" block disabled={!ready} loading={pending && !razorpay} onClick={upi || razorpay ? () => record("cash") : undefined}>
-              <HandHeart className="size-5" /> {tr("I'll give it in person", "मैं ख़ुद आकर दूँगा/दूँगी")}
-            </Button>
+            <Button
+              type={!upi && !razorpay ? "submit" : "button"}
+              variant={!upi && !razorpay ? "primary" : "ghost"}
+              size="lg"
+              width="100%"
+              isDisabled={!ready}
+              isLoading={pending && !razorpay}
+              label={tr("I'll give it in person", "मैं ख़ुद आकर दूँगा/दूँगी")}
+              icon={<Icon icon={HandHeart} />}
+              onClick={upi || razorpay ? () => record("cash") : undefined}
+            />
           </div>
           {!upi && !razorpay && (
-            <p className="mt-3 text-center text-sm text-muted">{tr("The couple hasn't set up online payments yet. Let them know what to expect — and bring your envelope to the wedding.", "जोड़े ने अभी ऑनलाइन भुगतान शुरू नहीं किया है। उन्हें बता दें — और लिफ़ाफ़ा शादी में ले आएँ।")}</p>
+            <Text as="p" type="supporting" display="block" justify="center">
+              {tr("The couple hasn't set up online payments yet. Bring your envelope to the wedding and we'll let them know to expect it.", "जोड़े ने अभी ऑनलाइन भुगतान शुरू नहीं किया है। लिफ़ाफ़ा शादी में ले आएँ, हम उन्हें बता देंगे।")}
+            </Text>
           )}
-          <p className="mt-3 flex items-start justify-center gap-1.5 text-center text-sm text-muted">
-            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-leaf" />
+          <p className="flex items-start justify-center gap-1.5 text-center text-sm text-secondary">
+            <ShieldCheck className="mt-0.5 size-4 shrink-0 text-leaf" aria-hidden />
             {tr("Private: other guests can't see your name or amount.", "निजी: दूसरे मेहमान आपका नाम या राशि नहीं देख सकते।")}
           </p>
         </form>
       )}
 
       {step === "upi" && upi && (
-        <div className="pb-2">
-          <button type="button" onClick={() => setStep("amount")} className="-ml-2 mb-2 inline-flex h-11 items-center gap-1.5 rounded-xl px-2 text-[15px] font-semibold text-muted hover:bg-sand">
-            <ArrowLeft className="size-4" /> {tr("Change amount", "राशि बदलें")}
-          </button>
-
-          <div className="rounded-3xl border border-line bg-white p-5 text-center">
-            <p className="text-[15px] text-muted">{tr("Paying to", "किसे भेज रहे हैं")}</p>
-            <p className="text-xl font-bold">{upi.name}</p>
-            <p className="font-mono text-[15px] text-muted">{upi.id}</p>
-
-            {touch && (
-              <a href={upiLink} className={buttonClass({ size: "lg", block: true, className: "mt-4" })}>
-                <Smartphone className="size-5" /> {tr("Open UPI app", "UPI ऐप खोलें")}
-              </a>
-            )}
-            <p className="mt-4 text-[15px] font-semibold">{touch ? tr("or scan from another phone", "या दूसरे फ़ोन से स्कैन करें") : tr("Scan with any UPI app", "किसी भी UPI ऐप से स्कैन करें")}</p>
-            <div className="mx-auto mt-2 grid size-52 place-items-center rounded-2xl border border-line bg-white p-2">
-              {qr ? <img src={qr} alt={tr("UPI QR code", "UPI QR कोड")} className="size-full" /> : <span className="size-6 animate-spin rounded-full border-2 border-primary border-r-transparent" />}
-            </div>
-            <p className="mt-1 text-sm text-muted">PhonePe · Google Pay · Paytm · BHIM</p>
-            <div className="mt-3 flex justify-center">
-              <CopyButton text={upi.id} label={tr("Copy UPI ID", "UPI ID कॉपी करें")} />
-            </div>
+        <div className="space-y-4 pb-2">
+          <div className="-ml-2">
+            <Button variant="ghost" size="sm" label={tr("Change amount", "राशि बदलें")} icon={<Icon icon={ArrowLeft} />} onClick={() => setStep("amount")} />
           </div>
 
-          <div className="mt-4 rounded-3xl bg-primary-soft p-4">
-            <p className="font-semibold text-primary-deep">{tr("After paying, come back and tap below", "भुगतान के बाद वापस आकर नीचे टैप करें")}</p>
-            <input className="input mt-3" value={utr} maxLength={30} onChange={(e) => setUtr(e.target.value.replace(/[^A-Za-z0-9]/g, ""))} placeholder={tr("UPI reference no. (optional)", "UPI रेफ़रेंस नंबर (वैकल्पिक)")} inputMode="numeric" aria-label={tr("UPI reference number", "UPI रेफ़रेंस नंबर")} />
-            <Button size="lg" block className="mt-2.5" loading={pending} onClick={() => record("upi")}>
-              <Check className="size-5" /> {tr(`I've paid ${inr(amount)}`, `मैंने ${inr(amount)} भेज दिए`)}
-            </Button>
-          </div>
+          <Card padding={5}>
+            <div className="text-center">
+              <Text type="supporting">{tr("Paying to", "किसे भेज रहे हैं")}</Text>
+              <p className="text-xl font-bold text-primary">{upi.name}</p>
+              <p className="font-mono text-[15px] text-secondary">{upi.id}</p>
+
+              {touch && (
+                <div className="mt-4">
+                  <Button variant="primary" size="lg" width="100%" href={upiLink} label={tr("Open UPI app", "UPI ऐप खोलें")} icon={<Icon icon={Smartphone} />} />
+                </div>
+              )}
+              <p className="mt-4 text-[15px] font-semibold text-primary">{touch ? tr("or scan from another phone", "या दूसरे फ़ोन से स्कैन करें") : tr("Scan with any UPI app", "किसी भी UPI ऐप से स्कैन करें")}</p>
+              <div className="mx-auto mt-2 grid size-52 place-items-center rounded-xl border border-border bg-white p-2">
+                {qr ? <img src={qr} alt={tr("UPI QR code", "UPI QR कोड")} className="size-full" /> : <span className="size-6 animate-spin rounded-full border-2 border-[var(--color-accent)] border-r-transparent" />}
+              </div>
+              <Text type="supporting">PhonePe · Google Pay · Paytm · BHIM</Text>
+              <div className="mt-3 flex justify-center">
+                <CopyButton text={upi.id} label={tr("Copy UPI ID", "UPI ID कॉपी करें")} />
+              </div>
+            </div>
+          </Card>
+
+          <Card variant="muted" padding={4}>
+            <div className="space-y-4">
+              <div>
+                <p className="font-semibold text-primary">{tr("After paying, come back here", "भुगतान के बाद यहाँ वापस आएँ")}</p>
+                <Text as="p" type="supporting" display="block">
+                  {tr("The couple confirms your shagun when they see it in their bank. A screenshot or reference number helps them find it.", "जोड़ा बैंक में देखकर आपके शगुन की पुष्टि करेगा। स्क्रीनशॉट या रेफ़रेंस नंबर से उन्हें आसानी होगी।")}
+                </Text>
+              </div>
+              <Field label={tr("Payment screenshot", "भुगतान का स्क्रीनशॉट")} inputID="upi-proof" isOptional>
+                <PhotoPicker label={tr("Add payment screenshot", "भुगतान का स्क्रीनशॉट जोड़ें")} value={proof} onPick={setProof} onRemove={() => setProof(null)} maxSide={1100} />
+              </Field>
+              <TextInput label={tr("UPI reference no. (UTR)", "UPI रेफ़रेंस नंबर (UTR)")} isOptional width="100%" value={utr} onChange={(v) => setUtr(v.replace(/[^A-Za-z0-9]/g, "").slice(0, 30))} inputMode="numeric" placeholder="412345678901" />
+              <Button variant="primary" size="lg" width="100%" isLoading={pending} label={tr(`I've paid ${inr(amount)}`, `मैंने ${inr(amount)} भेज दिए`)} icon={<Icon icon={Check} />} onClick={() => record("upi")} />
+            </div>
+          </Card>
         </div>
       )}
 
       {step === "done" && (
         <div className="pb-2 text-center">
-          <p className="text-6xl" aria-hidden>{doneMethod === "cash" ? "✉️" : "🎉"}</p>
-          <p className="mt-3 font-display text-4xl font-semibold text-primary">{inr(amount)}</p>
-          <p className="mt-3 text-[17px] text-muted">
-            {doneMethod === "cash"
-              ? tr(`We've told ${couple} to expect your shagun. See you at the wedding!`, `हमने ${couple} को बता दिया है कि आपका शगुन आ रहा है। शादी में मिलते हैं!`)
-              : doneMethod === "razorpay"
-                ? tr(`Your shagun has reached ${couple}. Your blessings mean a lot!`, `आपका शगुन ${couple} तक पहुँच गया। आपका आशीर्वाद अनमोल है!`)
-                : tr(`${couple} will see your shagun and blessing as soon as they confirm it in their UPI app.`, `${couple} अपने UPI ऐप में पुष्टि करते ही आपका शगुन और आशीर्वाद देख लेंगे।`)}
+          <p className="text-6xl" aria-hidden>
+            {doneMethod === "cash" ? "✉️" : "🎉"}
           </p>
-          <Button size="lg" block className="mt-6" onClick={onClose}>
-            {tr("Done", "ठीक है")}
-          </Button>
+          <p className="mt-3 font-display text-4xl font-semibold text-accent">{inr(amount)}</p>
+          <div className="mt-3">
+            <Banner
+              status={doneMethod === "razorpay" ? "success" : "info"}
+              collapsible={false}
+              title={
+                doneMethod === "cash"
+                  ? tr(`We've told ${couple} to expect your shagun`, `हमने ${couple} को बता दिया है`)
+                  : doneMethod === "razorpay"
+                    ? tr(`Your shagun has reached ${couple}`, `आपका शगुन ${couple} तक पहुँच गया`)
+                    : tr("Sent to the couple for confirmation", "पुष्टि के लिए जोड़े को भेजा गया")
+              }
+              description={
+                doneMethod === "upi"
+                  ? tr(`${couple} will see your blessing and confirm once the money shows up in their UPI app.`, `पैसा UPI ऐप में दिखते ही ${couple} आपका आशीर्वाद देखकर पुष्टि करेंगे।`)
+                  : tr("Your blessings mean a lot!", "आपका आशीर्वाद अनमोल है!")
+              }
+            />
+          </div>
+          <div className="mt-6">
+            <Button size="lg" width="100%" label={tr("Done", "ठीक है")} onClick={onClose} />
+          </div>
         </div>
       )}
     </Sheet>
