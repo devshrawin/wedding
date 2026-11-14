@@ -56,9 +56,9 @@ Deploy anywhere Node runs (Vercel, Railway, Fly, a VPS). On serverless hosts you
 The UI is built on **[Astryx](https://github.com/meta/astryx)** (`@astryxdesign/core` 0.7.15) with Tailwind for layout.
 
 - **Theme:** `src/themes/vivah/vivahTheme.ts` extends Astryx's "chocolate" theme: ruby red accent, marigold highlights, ivory paper, **Mukta** body text (Latin + Devanagari on one baseline) and **Fraunces** headings. Secondary text is darkened to meet WCAG AA. Rebuild with `npx astryx theme build src/themes/vivah/vivahTheme.ts`.
-- **Per-registry colour:** couples pick Sindoor, Marigold, Mehendi or Peacock; `src/lib/theme-style.ts` re-points the Astryx accent tokens for that registry's pages only.
+- **Per-registry colour:** couples pick Ruby, Marigold, Emerald, Peacock, Plum or Slate; `src/lib/theme-style.ts` re-points the Astryx accent tokens for that registry's pages only.
 - **Components used:** Button, IconButton, Card, ClickableCard, SelectableCard, TextInput, TextArea, DateInput, Selector, Switch, ToggleButton, SegmentedControl, Stepper, BottomSheet, Banner, Badge, Avatar, ProgressBar, EmptyState, Heading, Text, Toast.
-- **Logo:** a gift tied with a bow on a sindoor tile with a marigold knot (`src/components/brand.tsx`, `public/icon.svg`, generated PWA icons at `/icons/*`).
+- **Logo:** a gift tied with a bow on a ruby tile with a marigold knot (`src/components/brand.tsx`, `public/icon.svg`, generated PWA icons at `/icons/*`).
 
 ## How it works
 
