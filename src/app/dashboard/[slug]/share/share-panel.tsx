@@ -39,6 +39,8 @@ type Props = {
     partnerOne: string;
     partnerTwo: string;
     dateText: string;
+    /** line above the names: the couple's greeting or the neutral default */
+    greeting: string;
     city: string | null;
     visibility: "link" | "password" | "invite";
     theme: { primary: string; deep: string; soft: string };
@@ -58,8 +60,8 @@ export function SharePanel({ slug, origin, registry, invites }: Props) {
 
   const message = (link: string, guest?: string) =>
     lang === "hi"
-      ? `${guest ? `${guest} जी, ` : ""}नमस्ते! 🙏\n\nहमारी शादी में आपका आना ही सबसे बड़ा तोहफ़ा है। फिर भी अगर आप आशीर्वाद देना चाहें, तो हमने अपनी पसंद की छोटी-सी सूची बनाई है:\n\n${link}\n\nसप्रेम,\n${couple}`
-      : `${guest ? `Dear ${guest}, ` : ""}Namaste! 🙏\n\nYour presence at our wedding is the greatest gift. If you'd still like to bless us, we've put together a small wishlist:\n\n${link}\n\nWith love,\n${couple}`;
+      ? `${guest ? `${guest} जी, ` : ""}नमस्ते!\n\nहमारी शादी में आपका आना ही सबसे बड़ा तोहफ़ा है। फिर भी अगर आप आशीर्वाद देना चाहें, तो हमने अपनी पसंद की छोटी-सी सूची बनाई है:\n\n${link}\n\nसप्रेम,\n${couple}`
+      : `${guest ? `Dear ${guest}, ` : ""}Hello!\n\nYour presence at our wedding is the greatest gift. If you'd still like to bless us, we've put together a small wishlist:\n\n${link}\n\nWith love,\n${couple}`;
 
   return (
     <div className="space-y-6">
@@ -219,26 +221,30 @@ function ShareCard({ url, couple, registry, inviteOnly }: { url: string; couple:
       ctx.stroke();
       ctx.globalAlpha = 1;
 
-      // Toran
-      for (let i = 0; i < 17; i++) {
-        const x = 150 + i * 48.75;
-        const long = i % 2 === 0;
-        ctx.strokeStyle = "rgba(255,255,255,.35)";
-        ctx.lineWidth = 2;
+      // String of lights
+      ctx.strokeStyle = "rgba(255,255,255,.4)";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(110, 70);
+      ctx.quadraticCurveTo(W / 2, 150, W - 110, 70);
+      ctx.stroke();
+      for (let i = 0; i < 15; i++) {
+        const t = (i + 0.5) / 15;
+        const x = 110 + t * (W - 220);
+        const y = (1 - t) * (1 - t) * 70 + 2 * (1 - t) * t * 150 + t * t * 70;
+        ctx.fillStyle = "rgba(255,255,255,.6)";
+        ctx.fillRect(x - 5, y, 10, 9);
+        ctx.fillStyle = i % 3 === 1 ? "#fff3dc" : "#f2a31b";
         ctx.beginPath();
-        ctx.moveTo(x, 60);
-        ctx.lineTo(x, long ? 118 : 96);
-        ctx.stroke();
-        ctx.fillStyle = long ? "#f2a31b" : "#fff3dc";
-        ctx.beginPath();
-        ctx.arc(x, long ? 132 : 106, long ? 15 : 11, 0, Math.PI * 2);
+        ctx.ellipse(x, y + 24, 10, 14, 0, 0, Math.PI * 2);
         ctx.fill();
       }
 
       ctx.textAlign = "center";
       ctx.fillStyle = "#f6d998";
       ctx.font = `600 34px ${sans}`;
-      drawSpaced(ctx, lang === "hi" ? "॥ शुभ विवाह ॥" : "SHUBH VIVAH", W / 2, 240, lang === "hi" ? 2 : 10);
+      const latin = /^[\x00-\x7F]*$/.test(registry.greeting);
+      drawSpaced(ctx, latin ? registry.greeting.toUpperCase() : registry.greeting, W / 2, 240, latin ? 10 : 2);
 
       ctx.fillStyle = "#fff";
       const [a, b] = [registry.partnerOne, registry.partnerTwo];
@@ -277,7 +283,7 @@ function ShareCard({ url, couple, registry, inviteOnly }: { url: string; couple:
       ctx.fillText(lang === "hi" ? "स्कैन करें · आशीर्वाद भेजें" : "Scan to bless the couple", W / 2, 1195);
       ctx.fillStyle = "rgba(255,255,255,.7)";
       ctx.font = `500 30px ${sans}`;
-      ctx.fillText(lang === "hi" ? "तोहफ़ों की सूची और UPI शगुन · Giftr" : "Gift wishlist & UPI shagun · Giftr", W / 2, 1250);
+      ctx.fillText(lang === "hi" ? "तोहफ़ों की सूची और UPI से उपहार · Giftr" : "Gift wishlist & UPI gifts · Giftr", W / 2, 1250);
       setReady(true);
     })();
     return () => {
@@ -324,7 +330,7 @@ function ShareCard({ url, couple, registry, inviteOnly }: { url: string; couple:
         </div>
       ) : (
         <Text as="p" type="supporting" display="block">
-          {tr("Send it on WhatsApp, print it on your invitation, or keep it at the shagun counter.", "WhatsApp पर भेजें, निमंत्रण पत्र पर छापें, या शगुन काउंटर पर रखें।")}
+          {tr("Send it on WhatsApp, print it on your invitation, or keep it at the gift table.", "WhatsApp पर भेजें, निमंत्रण पत्र पर छापें, या उपहार की मेज़ पर रखें।")}
         </Text>
       )}
       <canvas ref={canvasRef} width={W} height={H} className="mx-auto mt-4 w-full max-w-xs rounded-2xl shadow-md" role="img" aria-label={tr(`Share card for ${couple} with QR code`, `${couple} का QR कोड वाला कार्ड`)} />

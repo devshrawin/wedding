@@ -41,23 +41,18 @@ export function Logo({ href = "/", className, onDark }: { href?: string; classNa
   );
 }
 
-/** Toran (door garland) — a festive divider. */
-export function Toran({ className }: { className?: string }) {
+/** String of party lights: a festive divider that suits any wedding. */
+export function Lights({ className }: { className?: string }) {
   return (
-    <svg viewBox="0 0 240 30" className={cn("h-7 w-60", className)} aria-hidden>
-      <path d="M0 3q120 10 240 0" stroke="currentColor" strokeWidth="1.5" fill="none" opacity=".45" />
-      {Array.from({ length: 11 }).map((_, i) => {
-        const x = 20 + i * 20;
-        const sag = 3 + 5 * Math.sin((Math.PI * x) / 240);
-        const long = i % 2 === 0;
+    <svg viewBox="0 0 240 26" className={cn("h-6 w-60", className)} aria-hidden>
+      <path d="M0 4q120 14 240 0" stroke="currentColor" strokeWidth="1.25" fill="none" opacity=".5" />
+      {Array.from({ length: 12 }).map((_, i) => {
+        const x = 10 + i * 20;
+        const y = 4 + 7 * Math.sin((Math.PI * x) / 240);
         return (
           <g key={i}>
-            <path d={`M${x} ${sag}v${long ? 9 : 5}`} stroke="currentColor" strokeWidth="1" opacity=".45" />
-            {long ? (
-              <path d={`M${x} ${sag + 9}c4 3 4 9 0 13c-4-4-4-10 0-13Z`} fill="#F2A31B" />
-            ) : (
-              <circle cx={x} cy={sag + 8.5} r="3.2" fill="currentColor" opacity=".8" />
-            )}
+            <rect x={x - 1.6} y={y} width="3.2" height="3" rx=".6" fill="currentColor" opacity=".6" />
+            <ellipse cx={x} cy={y + 8} rx="3.4" ry="4.6" fill={i % 3 === 1 ? "currentColor" : "#F2A31B"} opacity={i % 3 === 1 ? 0.9 : 1} />
           </g>
         );
       })}

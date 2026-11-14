@@ -15,7 +15,8 @@ import { EssentialsPicker, FundPicker } from "@/components/catalog-picker";
 import { useLang, useTr } from "@/components/lang";
 import { RegistryFields, type RegistryDraft } from "@/components/registry-fields";
 import { toast } from "@/components/ui/feedback";
-import { CATALOG } from "@/lib/catalog";
+import { CATALOG, catalogFor } from "@/lib/catalog";
+import { CeremonyFields, NEUTRAL_CEREMONY, type CeremonyDraft } from "@/components/ceremony-fields";
 import { errorText } from "@/lib/result";
 
 export function CreateWizard() {
@@ -23,17 +24,19 @@ export function CreateWizard() {
   const lang = useLang();
   const router = useRouter();
   const [step, setStep] = useState<1 | 2>(1);
-  const [draft, setDraft] = useState<RegistryDraft>({ partnerOne: "", partnerTwo: "", weddingDate: "", city: "", note: "", theme: "sindoor", photo: null });
-  const [funds, setFunds] = useState<string[]>(["shagun"]);
+  const [draft, setDraft] = useState<RegistryDraft>({ partnerOne: "", partnerTwo: "", weddingDate: "", city: "", note: "", theme: "ruby", photo: null });
+  const [ceremony, setCeremony] = useState<CeremonyDraft>(NEUTRAL_CEREMONY);
+  const [funds, setFunds] = useState<string[]>(["blessings"]);
   const [essentials, setEssentials] = useState<string[]>(CATALOG.filter((c) => c.starter).map((c) => c.id));
   const [pending, start] = useTransition();
 
   const namesOk = Boolean(draft.partnerOne.trim() && draft.partnerTwo.trim());
-  const picked = funds.length + essentials.length;
+  const shownEssentials = essentials.filter((id) => catalogFor(ceremony.tradition).some((c) => c.id === id));
+  const picked = funds.length + shownEssentials.length;
 
   const submit = () =>
     start(async () => {
-      const res = await createRegistry({ ...draft, photo: draft.photo === "keep" ? null : draft.photo, catalogIds: essentials, fundIds: funds, lang });
+      const res = await createRegistry({ ...draft, photo: draft.photo === "keep" ? null : draft.photo, catalogIds: shownEssentials, fundIds: funds, lang, ...ceremony });
       if (!res.ok) return toast(errorText(res.error, tr), "error");
       router.push(`/dashboard/${res.slug}?welcome=1`);
     });
@@ -64,6 +67,9 @@ export function CreateWizard() {
           <div className="mt-6">
             <Card padding={5}>
               <RegistryFields value={draft} onChange={(p) => setDraft((d) => ({ ...d, ...p }))} showNote={false} />
+              <div className="mt-5 border-t border-border pt-5">
+                <CeremonyFields value={ceremony} onChange={setCeremony} />
+              </div>
             </Card>
           </div>
           <StickyBar>
@@ -78,12 +84,12 @@ export function CreateWizard() {
           </Text>
 
           <h2 className="mb-3 mt-8 flex items-center gap-2 font-display text-xl font-semibold text-primary">
-            <Sparkles className="size-5 text-gold" aria-hidden /> {tr("Shagun & funds", "शगुन और फंड")}
+            <Sparkles className="size-5 text-gold" aria-hidden /> {tr("Cash funds", "नकद फंड")}
           </h2>
-          <FundPicker selected={funds} onChange={setFunds} />
+          <FundPicker selected={funds} onChange={setFunds} giftWord={ceremony.giftWord || null} />
 
           <h2 className="mb-3 mt-10 font-display text-xl font-semibold text-primary">{tr("Wedding essentials", "शादी का ज़रूरी सामान")}</h2>
-          <EssentialsPicker selected={essentials} onChange={setEssentials} />
+          <EssentialsPicker selected={essentials} onChange={setEssentials} tradition={ceremony.tradition} />
 
           <StickyBar>
             <IconButton size="lg" label={tr("Back", "पीछे")} icon={<Icon icon={ArrowLeft} />} onClick={() => setStep(1)} />

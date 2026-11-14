@@ -6,10 +6,11 @@ import { getManagedRegistry, requireUser } from "@/lib/auth";
 import { loadRegistryData } from "@/lib/data";
 import { buildEntries, guestLabel, methodLabel } from "@/lib/entries";
 import { getTr } from "@/lib/i18n";
+import { giftWordFor } from "@/lib/traditions";
 import { formatDate, inr } from "@/lib/utils";
 import { PrintButton } from "./print-button";
 
-export const metadata = { title: "Shagun ledger" };
+export const metadata = { title: "Gift ledger" };
 
 /**
  * The family vahi (bahi-khata): a print-ready ledger. "Save as PDF" in the
@@ -27,6 +28,7 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
   const rows = buildEntries(data.items, data.reservations, data.contributions)
     .filter((e) => e.kind === "reservation" || e.status === "confirmed")
     .reverse();
+  const word = giftWordFor(registry, lang);
   const cash = rows.filter((r) => r.kind === "contribution");
   const gifts = rows.filter((r) => r.kind === "reservation");
   const total = cash.reduce((s, r) => s + (r.amount ?? 0), 0);
@@ -34,7 +36,7 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
   return (
     <div className="pb-10">
       <div className="no-print mb-5 flex flex-wrap items-center gap-2.5">
-        <Button variant="ghost" size="sm" href={`/dashboard/${slug}/shagun`} label={tr("Back", "वापस")} icon={<ArrowLeft className="size-4" aria-hidden />} />
+        <Button variant="ghost" size="sm" href={`/dashboard/${slug}/received`} label={tr("Back", "वापस")} icon={<ArrowLeft className="size-4" aria-hidden />} />
         <span className="flex-1" />
         <Button size="sm" href={`/api/ledger/${slug}`} label={tr("Excel (CSV)", "Excel (CSV)")} icon={<FileSpreadsheet className="size-4" aria-hidden />} />
         <PrintButton label={tr("Save as PDF / Print", "PDF सेव करें / छापें")} />
@@ -48,15 +50,11 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
         />
       </div>
 
-      <article className="ledger mx-auto max-w-[210mm] rounded-sm border-[3px] border-double border-[#9B1C31] bg-[#fffdf6] p-6 text-[#2a1a16] shadow-md sm:p-10 print:border-[3px] print:shadow-none">
-        <header className="border-b-2 border-[#9B1C31] pb-5 text-center">
-          <p className="text-lg font-semibold text-[#9B1C31]">॥ श्री गणेशाय नमः ॥</p>
-          <div className="mt-1 flex items-center justify-center gap-6 text-sm font-bold text-[#85570f]">
-            <span>शुभ</span>
-            <span className="text-2xl" aria-hidden>ॐ</span>
-            <span>लाभ</span>
-          </div>
-          <h1 className="mt-3 text-3xl font-semibold text-[#9B1C31] sm:text-4xl">{tr("Shagun Ledger", "शगुन बही")}</h1>
+      <article className="ledger mx-auto max-w-[210mm] rounded-sm border-[3px] border-double border-[var(--color-accent)] bg-[#fffdf6] p-6 text-[#2a1a16] shadow-md sm:p-10 print:border-[3px] print:shadow-none">
+        <header className="border-b-2 border-[var(--color-accent)] pb-5 text-center">
+          {/* Only shown when the couple chose a heading (e.g. through a ceremony style). */}
+          {registry.ledgerHeading && <p className="mb-2 text-lg font-semibold text-accent">{registry.ledgerHeading}</p>}
+          <h1 className="text-3xl font-semibold text-accent sm:text-4xl">{tr("Gift ledger", "उपहार बही")}</h1>
           <p className="mt-2 font-display text-2xl font-semibold">
             {registry.partnerOne} & {registry.partnerTwo}
           </p>
@@ -64,11 +62,11 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
         </header>
 
         <section className="mt-6">
-          <h2 className="text-xl font-semibold text-[#9B1C31]">{tr("Shagun received", "प्राप्त शगुन")}</h2>
+          <h2 className="text-xl font-semibold text-[var(--color-accent)]">{tr(`${word} received`, `प्राप्त ${word}`)}</h2>
           {cash.length ? (
             <table className="mt-3 w-full border-collapse text-[15px]">
               <thead>
-                <tr className="border-y-2 border-[#9B1C31] text-left text-[13px] uppercase tracking-wide text-[#9B1C31]">
+                <tr className="border-y-2 border-[var(--color-accent)] text-left text-[13px] uppercase tracking-wide text-[var(--color-accent)]">
                   <th className="w-10 py-2 pr-2">{tr("No.", "क्र.")}</th>
                   <th className="py-2 pr-2">{tr("Name", "नाम")}</th>
                   <th className="hidden py-2 pr-2 sm:table-cell print:table-cell">{tr("Place", "स्थान")}</th>
@@ -93,27 +91,27 @@ export default async function LedgerPage({ params }: { params: Promise<{ slug: s
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-y-2 border-[#9B1C31] text-lg font-bold">
+                <tr className="border-y-2 border-[var(--color-accent)] text-lg font-bold">
                   <td colSpan={2} className="py-3">
                     {tr("Total", "कुल योग")}
                   </td>
                   <td className="hidden sm:table-cell print:table-cell" colSpan={2} />
                   <td />
-                  <td className="py-3 text-right tabular-nums text-[#9B1C31]">{inr(total) || "₹0"}</td>
+                  <td className="py-3 text-right tabular-nums text-[var(--color-accent)]">{inr(total) || "₹0"}</td>
                 </tr>
               </tfoot>
             </table>
           ) : (
-            <p className="mt-3 text-[#75645c]">{tr("No shagun recorded yet.", "अभी कोई शगुन दर्ज नहीं है।")}</p>
+            <p className="mt-3 text-[#75645c]">{tr("Nothing recorded yet.", "अभी कुछ दर्ज नहीं है।")}</p>
           )}
         </section>
 
         {gifts.length > 0 && (
           <section className="mt-8">
-            <h2 className="text-xl font-semibold text-[#9B1C31]">{tr("Gifts", "तोहफ़े")}</h2>
+            <h2 className="text-xl font-semibold text-[var(--color-accent)]">{tr("Gifts", "तोहफ़े")}</h2>
             <table className="mt-3 w-full border-collapse text-[15px]">
               <thead>
-                <tr className="border-y-2 border-[#9B1C31] text-left text-[13px] uppercase tracking-wide text-[#9B1C31]">
+                <tr className="border-y-2 border-[var(--color-accent)] text-left text-[13px] uppercase tracking-wide text-[var(--color-accent)]">
                   <th className="w-10 py-2 pr-2">{tr("No.", "क्र.")}</th>
                   <th className="py-2 pr-2">{tr("Name", "नाम")}</th>
                   <th className="py-2 pr-2">{tr("Gift", "तोहफ़ा")}</th>

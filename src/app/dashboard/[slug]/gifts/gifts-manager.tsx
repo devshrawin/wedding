@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { createContext, useContext, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@astryxdesign/core/Badge";
 import { Banner } from "@astryxdesign/core/Banner";
@@ -23,7 +23,8 @@ import { useLang, useTr } from "@/components/lang";
 import { toast } from "@/components/ui/feedback";
 import { ItemThumb, PhotoPicker } from "@/components/ui/kit";
 import { Sheet } from "@/components/ui/sheet";
-import { CATEGORIES } from "@/lib/catalog";
+import { CATEGORIES, CUSTOM_PREFIX } from "@/lib/catalog";
+import { GiftIcon, PICKER_ICONS, iconLabel } from "@/components/icons";
 import { errorText, type ErrorCode } from "@/lib/result";
 import { cn, inr } from "@/lib/utils";
 
@@ -33,7 +34,7 @@ export type ManagedItem = {
   title: string;
   description: string | null;
   imageUrl: string | null;
-  emoji: string | null;
+  icon: string | null;
   url: string | null;
   store: string | null;
   category: string;
@@ -55,7 +56,7 @@ type Draft = {
   title: string;
   description: string;
   imageUrl: string;
-  emoji: string;
+  icon: string;
   url: string;
   store: string;
   category: string;
@@ -70,7 +71,7 @@ const emptyDraft = (kind: "product" | "fund"): Draft => ({
   title: "",
   description: "",
   imageUrl: "",
-  emoji: kind === "fund" ? "💝" : "🎁",
+  icon: kind === "fund" ? "blessing" : "gift",
   url: "",
   store: "",
   category: kind === "fund" ? "fund" : "other",
@@ -85,7 +86,7 @@ const toInput = (d: Draft): ItemInput => ({
   title: d.title,
   description: d.description,
   imageUrl: d.imageUrl,
-  emoji: d.emoji,
+  icon: d.icon,
   url: d.url,
   store: d.store,
   category: d.category,
@@ -100,7 +101,7 @@ const fromItem = (i: ManagedItem): Draft => ({
   title: i.title,
   description: i.description ?? "",
   imageUrl: i.imageUrl ?? "",
-  emoji: i.emoji ?? "",
+  icon: i.icon ?? "",
   url: i.url ?? "",
   store: i.store ?? "",
   category: i.category,
@@ -112,7 +113,11 @@ const fromItem = (i: ManagedItem): Draft => ({
 
 type Mode = null | "menu" | "link" | "manual" | "essentials" | "fund" | { edit: ManagedItem };
 
-export function GiftsManager({ slug, items, openAdd }: { slug: string; items: ManagedItem[]; openAdd: boolean }) {
+/** Registry-wide context the add/edit sheets need. */
+const RegistryCtx = createContext<{ sections: string[]; tradition: string; giftWord: string | null }>({ sections: [], tradition: "none", giftWord: null });
+
+export function GiftsManager({ slug, items, openAdd, tradition, giftWord }: { slug: string; items: ManagedItem[]; openAdd: boolean; tradition: string; giftWord: string | null }) {
+  const sections = [...new Set(items.map((i) => i.category).filter((c) => c.startsWith(CUSTOM_PREFIX)))];
   const tr = useTr();
   const router = useRouter();
   const [mode, setMode] = useState<Mode>(openAdd ? "menu" : null);
@@ -127,6 +132,7 @@ export function GiftsManager({ slug, items, openAdd }: { slug: string; items: Ma
   const products = items.filter((i) => i.kind === "product");
 
   return (
+    <RegistryCtx.Provider value={{ sections, tradition, giftWord }}>
     <div>
       <div className="flex items-center justify-between gap-3">
         <Heading level={1}>{tr("Your wishlist", "आपकी सूची")}</Heading>
@@ -138,7 +144,7 @@ export function GiftsManager({ slug, items, openAdd }: { slug: string; items: Ma
           <Card padding={6}>
             <EmptyState
               title={tr("Nothing here yet", "अभी यहाँ कुछ नहीं है")}
-              description={tr("Add gifts you'd love, or a fund for shagun.", "अपनी पसंद के तोहफ़े जोड़ें, या शगुन के लिए फंड बनाएँ।")}
+              description={tr("Add gifts you'd love, or a cash fund.", "अपनी पसंद के तोहफ़े जोड़ें, या नकद फंड बनाएँ।")}
               icon={<Gift className="size-10 text-accent" />}
               actions={<Button variant="primary" label={tr("Add your first wish", "पहली पसंद जोड़ें")} onClick={() => setMode("menu")} />}
             />
@@ -147,7 +153,7 @@ export function GiftsManager({ slug, items, openAdd }: { slug: string; items: Ma
       ) : (
         <div className="mt-6 space-y-8">
           {[
-            { title: tr("Shagun & funds", "शगुन और फंड"), list: funds },
+            { title: tr("Cash funds", "नकद फंड"), list: funds },
             { title: tr("Gifts", "तोहफ़े"), list: products },
           ]
             .filter((g) => g.list.length)
@@ -161,7 +167,7 @@ export function GiftsManager({ slug, items, openAdd }: { slug: string; items: Ma
                     <li key={i.id}>
                       <ClickableCard label={tr(`Edit ${i.title}`, `${i.title} बदलें`)} onClick={() => setMode({ edit: i })} padding={3}>
                         <div className={cn("flex items-center gap-3", i.hidden && "opacity-60")}>
-                          <ItemThumb imageUrl={i.imageUrl} emoji={i.emoji} className="size-16 shrink-0 text-[15px]" />
+                          <ItemThumb imageUrl={i.imageUrl} icon={i.icon} className="size-16 shrink-0 text-[15px]" />
                           <div className="min-w-0 flex-1">
                             <p className="line-clamp-2 font-semibold leading-snug text-primary">{i.title}</p>
                             <ItemStatus item={i} />
@@ -183,7 +189,7 @@ export function GiftsManager({ slug, items, openAdd }: { slug: string; items: Ma
             { m: "link" as const, icon: Link2, t: tr("Paste a product link", "प्रोडक्ट का लिंक डालें"), d: tr("Amazon, Flipkart, Myntra, Pepperfry, Croma…", "Amazon, Flipkart, Myntra, Pepperfry, Croma…") },
             { m: "manual" as const, icon: PenLine, t: tr("Add a gift yourself", "ख़ुद तोहफ़ा लिखें"), d: tr("Name, price and your own photo, from any shop.", "नाम, दाम और अपनी फ़ोटो, किसी भी दुकान का।") },
             { m: "essentials" as const, icon: Sparkles, t: tr("Pick wedding essentials", "शादी का ज़रूरी सामान चुनें"), d: tr("Mixer, cooker, bedsheets, pooja thali and more.", "मिक्सर, कुकर, बेडशीट, पूजा थाली और बहुत कुछ।") },
-            { m: "fund" as const, icon: Wallet, t: tr("Open a shagun fund", "शगुन फंड खोलें"), d: tr("Honeymoon, new home, fridge. Guests give any amount.", "हनीमून, नया घर, फ्रिज, मेहमान कोई भी राशि दें।") },
+            { m: "fund" as const, icon: Wallet, t: tr("Open a cash fund", "नकद फंड खोलें"), d: tr("Honeymoon, new home, fridge. Guests give any amount.", "हनीमून, नया घर, फ्रिज, मेहमान कोई भी राशि दें।") },
           ].map((o) => (
             <ClickableCard key={o.m} label={o.t} onClick={() => setMode(o.m)} padding={4}>
               <div className="flex items-center gap-4">
@@ -206,6 +212,7 @@ export function GiftsManager({ slug, items, openAdd }: { slug: string; items: Ma
       {mode === "fund" && <FundSheet slug={slug} onClose={close} onDone={done} />}
       {mode && typeof mode === "object" && <EditSheet slug={slug} item={mode.edit} onClose={close} onDone={done} />}
     </div>
+    </RegistryCtx.Provider>
   );
 }
 
@@ -240,11 +247,81 @@ function ItemStatus({ item: i }: { item: ManagedItem }) {
   );
 }
 
+// ── Icon + section pickers ────────────────────────────────────────────
+
+function IconPicker({ value, onChange }: { value: string; onChange: (icon: string) => void }) {
+  const tr = useTr();
+  return (
+    <Field label={tr("Icon", "आइकन")} inputID="item-icon" isGroupLabel>
+      <div className="grid grid-cols-6 gap-2 sm:grid-cols-9" role="radiogroup" aria-label={tr("Icon", "आइकन")}>
+        {PICKER_ICONS.map((k) => (
+          <button
+            key={k}
+            type="button"
+            role="radio"
+            aria-checked={value === k}
+            aria-label={iconLabel(k)}
+            onClick={() => onChange(k)}
+            className={cn(
+              "grid aspect-square place-items-center rounded-xl border-2 bg-surface text-accent transition-colors",
+              value === k ? "border-[var(--color-accent)] bg-brand-soft" : "border-border hover:border-[var(--color-border-emphasized)]",
+            )}
+          >
+            <GiftIcon name={k} className="size-6" />
+          </button>
+        ))}
+      </div>
+    </Field>
+  );
+}
+
+const NEW_SECTION = "__new__";
+
+/** Built-in sections plus the couple's own ("c:Wall art"), with a way to make a new one. */
+function SectionPicker({ value, sections, onChange }: { value: string; sections: string[]; onChange: (v: string) => void }) {
+  const tr = useTr();
+  const lang = useLang();
+  const [creating, setCreating] = useState(false);
+  const [name, setName] = useState("");
+  const own = [...new Set([...sections, value].filter((s) => s.startsWith(CUSTOM_PREFIX)))];
+  const options = [
+    ...CATEGORIES.filter((c) => c.key !== "fund").map((c) => ({ value: c.key, label: lang === "hi" ? c.hi : c.en })),
+    ...own.map((k) => ({ value: k, label: k.slice(CUSTOM_PREFIX.length) })),
+    { value: NEW_SECTION, label: tr("+ New section…", "+ नया हिस्सा…") },
+  ];
+  if (creating)
+    return (
+      <div className="flex items-end gap-2">
+        <div className="flex-1">
+          <TextInput label={tr("New section name", "नए हिस्से का नाम")} width="100%" value={name} hasAutoFocus onChange={(v) => setName(v.slice(0, 40))} placeholder={tr("Wall art, Garden, Books…", "वॉल आर्ट, बगीचा, किताबें…")} />
+        </div>
+        <Button
+          label={tr("Use", "चुनें")}
+          isDisabled={!name.trim()}
+          onClick={() => {
+            onChange(CUSTOM_PREFIX + name.trim());
+            setCreating(false);
+          }}
+        />
+      </div>
+    );
+  return (
+    <Selector
+      label={tr("Section", "हिस्सा")}
+      width="100%"
+      value={value}
+      options={options}
+      onChange={(v) => (v === NEW_SECTION ? setCreating(true) : onChange(v))}
+      presentation="adaptive"
+    />
+  );
+}
+
 // ── Item form (shared by add + edit) ──────────────────────────────────
 
 function ItemForm({ slug, draft, set, locked }: { slug: string; draft: Draft; set: (p: Partial<Draft>) => void; locked?: boolean }) {
+  const { sections } = useContext(RegistryCtx);
   const tr = useTr();
-  const lang = useLang();
   const fund = draft.kind === "fund";
   const upload = async (dataUrl: string) => {
     const res = await uploadItemImage(slug, dataUrl);
@@ -253,29 +330,12 @@ function ItemForm({ slug, draft, set, locked }: { slug: string; draft: Draft; se
   };
   return (
     <div className="space-y-4">
-      {fund ? (
-        <Field label={tr("Icon", "आइकन")} inputID="fund-icon" isGroupLabel>
-          <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={tr("Icon", "आइकन")}>
-            {["💝", "✈️", "🏡", "🧊", "🛋️", "🪙", "🙏", "🚗", "📚", "🎶"].map((e) => (
-              <button
-                key={e}
-                type="button"
-                role="radio"
-                aria-checked={draft.emoji === e}
-                aria-label={e}
-                onClick={() => set({ emoji: e })}
-                className={cn("grid size-12 place-items-center rounded-xl border-2 bg-surface text-2xl", draft.emoji === e ? "border-[var(--color-accent)]" : "border-border")}
-              >
-                {e}
-              </button>
-            ))}
-          </div>
-        </Field>
-      ) : (
-        <Field label={tr("Photo", "फ़ोटो")} inputID="item-photo" isOptional description={draft.store ? tr(`From ${draft.store}`, `${draft.store} से`) : undefined}>
+      {!fund && (
+        <Field label={tr("Photo", "फ़ोटो")} inputID="item-photo" isOptional description={draft.store ? tr(`From ${draft.store}`, `${draft.store} से`) : tr("No photo? We'll show the icon below.", "फ़ोटो नहीं है? नीचे वाला आइकन दिखेगा।")}>
           <PhotoPicker label={tr("Choose gift photo", "तोहफ़े की फ़ोटो चुनें")} value={draft.imageUrl || null} onPick={upload} onRemove={() => set({ imageUrl: "" })} />
         </Field>
       )}
+      {(fund || !draft.imageUrl) && <IconPicker value={draft.icon} onChange={(icon) => set({ icon })} />}
       <TextInput
         label={fund ? tr("Fund name", "फंड का नाम") : tr("Gift name", "तोहफ़े का नाम")}
         width="100%"
@@ -287,7 +347,7 @@ function ItemForm({ slug, draft, set, locked }: { slug: string; draft: Draft; se
         <TextInput
           label={fund ? tr("Goal amount (₹)", "लक्ष्य राशि (₹)") : tr("Price (₹)", "दाम (₹)")}
           isOptional={fund}
-          description={fund ? tr("Leave empty for an open shagun fund.", "खुले शगुन फंड के लिए खाली छोड़ दें।") : undefined}
+          description={fund ? tr("Leave empty for an open fund with no goal.", "बिना लक्ष्य वाले खुले फंड के लिए खाली छोड़ दें।") : undefined}
           width="100%"
           inputMode="numeric"
           value={draft.price}
@@ -307,16 +367,7 @@ function ItemForm({ slug, draft, set, locked }: { slug: string; draft: Draft; se
           />
         )}
       </div>
-      {!fund && (
-        <Selector
-          label={tr("Category", "श्रेणी")}
-          width="100%"
-          value={draft.category}
-          options={CATEGORIES.filter((c) => c.key !== "fund").map((c) => ({ value: c.key, label: `${c.emoji} ${lang === "hi" ? c.hi : c.en}` }))}
-          onChange={(v) => set({ category: v })}
-          presentation="adaptive"
-        />
-      )}
+      {!fund && <SectionPicker value={draft.category} sections={sections} onChange={(category) => set({ category })} />}
       <TextArea
         label={fund ? tr("Why this fund?", "यह फंड क्यों?") : tr("Note for guests", "मेहमानों के लिए नोट")}
         isOptional
@@ -460,12 +511,13 @@ function ManualSheet({ slug, onClose, onDone }: { slug: string; onClose: () => v
 // ── Essentials ────────────────────────────────────────────────────────
 
 function EssentialsSheet({ slug, onClose, onDone }: { slug: string; onClose: () => void; onDone: (n: number) => void }) {
+  const { tradition } = useContext(RegistryCtx);
   const tr = useTr();
   const [selected, setSelected] = useState<string[]>([]);
   const { pending, save } = useSave();
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()} title={tr("Wedding essentials", "शादी का ज़रूरी सामान")} description={tr("Tap everything you'd like.", "जो-जो चाहिए, उस पर टैप करें।")} height="tall">
-      <EssentialsPicker selected={selected} onChange={setSelected} />
+      <EssentialsPicker selected={selected} onChange={setSelected} tradition={tradition} />
       <div className="sticky bottom-0 -mx-5 mt-4 border-t border-border bg-surface px-5 py-3">
         <Button
           variant="primary"
@@ -484,12 +536,13 @@ function EssentialsSheet({ slug, onClose, onDone }: { slug: string; onClose: () 
 // ── Fund ──────────────────────────────────────────────────────────────
 
 function FundSheet({ slug, onClose, onDone }: { slug: string; onClose: () => void; onDone: (msg: string) => void }) {
+  const { giftWord } = useContext(RegistryCtx);
   const tr = useTr();
   const [custom, setCustom] = useState<Draft | null>(null);
   const [selected, setSelected] = useState<string[]>([]);
   const { pending, save } = useSave();
   return (
-    <Sheet open onOpenChange={(o) => !o && onClose()} title={tr("Shagun funds", "शगुन फंड")} description={tr("Guests give any amount by UPI. We suggest ₹501, ₹1,101, ₹2,101…", "मेहमान UPI से कोई भी राशि दें। हम ₹501, ₹1,101, ₹2,101… सुझाते हैं।")} height="tall" purpose="form">
+    <Sheet open onOpenChange={(o) => !o && onClose()} title={tr("Cash funds", "नकद फंड")} description={tr("Guests give any amount by UPI. We suggest ₹501, ₹1,101, ₹2,101…", "मेहमान UPI से कोई भी राशि दें। हम ₹501, ₹1,101, ₹2,101… सुझाते हैं।")} height="tall" purpose="form">
       {custom ? (
         <div className="space-y-4 pb-2">
           <ItemForm slug={slug} draft={custom} set={(p) => setCustom((d) => (d ? { ...d, ...p } : d))} />
@@ -497,7 +550,7 @@ function FundSheet({ slug, onClose, onDone }: { slug: string; onClose: () => voi
         </div>
       ) : (
         <div className="space-y-3 pb-2">
-          <FundPicker selected={selected} onChange={setSelected} />
+          <FundPicker selected={selected} onChange={setSelected} giftWord={giftWord} />
           <Button width="100%" icon={<Icon icon={Plus} />} label={tr("Create your own fund", "अपना फंड बनाएँ")} onClick={() => setCustom(emptyDraft("fund"))} />
           <Button
             variant="primary"

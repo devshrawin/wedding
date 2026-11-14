@@ -14,9 +14,20 @@ CREATE TABLE "contributions" (
 	"method" text NOT NULL,
 	"status" text DEFAULT 'pending' NOT NULL,
 	"utr" text,
+	"proof_image" text,
 	"razorpay_order_id" text,
 	"razorpay_payment_id" text,
 	"thanked_at" timestamp with time zone,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+CREATE TABLE "images" (
+	"id" text PRIMARY KEY NOT NULL,
+	"registry_id" text NOT NULL,
+	"kind" text NOT NULL,
+	"mime" text NOT NULL,
+	"bytes" integer NOT NULL,
+	"data" "bytea" NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
@@ -38,7 +49,7 @@ CREATE TABLE "items" (
 	"title" text NOT NULL,
 	"description" text,
 	"image_url" text,
-	"emoji" text,
+	"icon" text,
 	"url" text,
 	"store" text,
 	"category" text DEFAULT 'other' NOT NULL,
@@ -60,6 +71,12 @@ CREATE TABLE "otp_codes" (
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "rate_limits" (
+	"key" text PRIMARY KEY NOT NULL,
+	"count" integer NOT NULL,
+	"reset_at" timestamp with time zone NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "registries" (
 	"id" text PRIMARY KEY NOT NULL,
 	"slug" text NOT NULL,
@@ -70,7 +87,11 @@ CREATE TABLE "registries" (
 	"city" text,
 	"note" text,
 	"photo" text,
-	"theme" text DEFAULT 'sindoor' NOT NULL,
+	"theme" text DEFAULT 'ruby' NOT NULL,
+	"tradition" text DEFAULT 'none' NOT NULL,
+	"greeting" text,
+	"ledger_heading" text,
+	"gift_word" text,
 	"visibility" text DEFAULT 'link' NOT NULL,
 	"password_hash" text,
 	"hide_reserved" boolean DEFAULT false NOT NULL,
@@ -115,6 +136,7 @@ CREATE TABLE "users" (
 --> statement-breakpoint
 ALTER TABLE "contributions" ADD CONSTRAINT "contributions_registry_id_registries_id_fk" FOREIGN KEY ("registry_id") REFERENCES "public"."registries"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "contributions" ADD CONSTRAINT "contributions_item_id_items_id_fk" FOREIGN KEY ("item_id") REFERENCES "public"."items"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "images" ADD CONSTRAINT "images_registry_id_registries_id_fk" FOREIGN KEY ("registry_id") REFERENCES "public"."registries"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "invites" ADD CONSTRAINT "invites_registry_id_registries_id_fk" FOREIGN KEY ("registry_id") REFERENCES "public"."registries"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "items" ADD CONSTRAINT "items_registry_id_registries_id_fk" FOREIGN KEY ("registry_id") REFERENCES "public"."registries"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "registries" ADD CONSTRAINT "registries_owner_id_users_id_fk" FOREIGN KEY ("owner_id") REFERENCES "public"."users"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
@@ -123,6 +145,7 @@ ALTER TABLE "reservations" ADD CONSTRAINT "reservations_registry_id_registries_i
 ALTER TABLE "reservations" ADD CONSTRAINT "reservations_item_id_items_id_fk" FOREIGN KEY ("item_id") REFERENCES "public"."items"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "contributions_registry_idx" ON "contributions" USING btree ("registry_id");--> statement-breakpoint
 CREATE INDEX "contributions_order_idx" ON "contributions" USING btree ("razorpay_order_id");--> statement-breakpoint
+CREATE INDEX "images_registry_idx" ON "images" USING btree ("registry_id");--> statement-breakpoint
 CREATE INDEX "invites_registry_idx" ON "invites" USING btree ("registry_id");--> statement-breakpoint
 CREATE INDEX "items_registry_idx" ON "items" USING btree ("registry_id");--> statement-breakpoint
 CREATE INDEX "otp_phone_idx" ON "otp_codes" USING btree ("phone");--> statement-breakpoint

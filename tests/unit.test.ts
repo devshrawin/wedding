@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import { createHmac } from "node:crypto";
 import { test } from "node:test";
+import { CATALOG, CATEGORIES, FUND_TEMPLATES, catalogFor, categoryOf, fundTitle } from "../src/lib/catalog";
+import { TRADITIONS, giftWordFor, greetingFor, traditionOf } from "../src/lib/traditions";
+import { ICONS, PICKER_ICONS, iconLabel } from "../src/components/icons";
 import { computeItems, computeStats, thankYouNote } from "../src/lib/compute";
 import type { Contribution, Item, Reservation } from "../src/lib/db/schema";
 import { extractFromHtml, isPrivateIp, parsePrice, parseSafeUrl, titleFromUrl } from "../src/lib/link-preview";
@@ -9,7 +12,7 @@ import { buildUpiLink, inr, isValidUpiId, normalizePhone, shagunSuggestions, slu
 
 const now = new Date();
 const item = (p: Partial<Item>): Item => ({
-  id: "i1", registryId: "r", kind: "product", title: "Mixer", description: null, imageUrl: null, emoji: null, url: null, store: null,
+  id: "i1", registryId: "r", kind: "product", title: "Mixer", description: null, imageUrl: null, icon: null, url: null, store: null,
   category: "kitchen", price: 4000, quantity: 1, allowChipIn: false, hidden: false, position: 0, createdAt: now, ...p,
 });
 const res = (p: Partial<Reservation>): Reservation => ({
@@ -143,4 +146,49 @@ test("razorpay signatures", () => {
   assert.ok(verifyWebhookSignature(body, wsig, "whsec"));
   assert.ok(!verifyWebhookSignature(body + " ", wsig, "whsec"));
   assert.equal(platformFeePaise(1000), 2500); // 2.5% of ₹1000 = ₹25
+});
+
+// ── Ceremony styles, catalog, icons ───────────────────────────────────
+
+test("neutral by default: no religious wording unless a style is chosen", () => {
+  assert.equal(traditionOf(null).key, "none");
+  assert.equal(greetingFor({ greeting: null }, "en"), "We're getting married");
+  assert.equal(giftWordFor({ giftWord: null }, "en"), "Gift");
+  assert.equal(giftWordFor({ giftWord: "  Salami " }, "en"), "Salami");
+  const none = TRADITIONS.find((t) => t.key === "none")!;
+  assert.equal(none.greeting, null);
+  assert.equal(none.ledgerHeading, null);
+});
+
+test("faith items only appear for their own style", () => {
+  const ids = (t: string) => catalogFor(t).map((c) => c.id);
+  assert.ok(!ids("none").some((id) => ["thali", "mandir", "janamaz", "bible", "rumala"].includes(id)));
+  assert.ok(ids("muslim").includes("janamaz") && !ids("muslim").includes("mandir"));
+  assert.ok(ids("christian").includes("bible") && !ids("christian").includes("janamaz"));
+  assert.ok(ids("hindu").includes("thali"));
+  assert.equal(ids("civil").length, ids("none").length);
+});
+
+test("every catalog item, category and fund uses a real icon (no emoji)", () => {
+  for (const c of CATALOG) assert.ok(c.icon in ICONS, c.id);
+  for (const c of CATEGORIES) assert.ok(c.icon in ICONS, c.key);
+  for (const f of FUND_TEMPLATES) assert.ok(f.icon in ICONS, f.id);
+  for (const k of PICKER_ICONS) assert.ok(k in ICONS, k);
+  assert.equal(iconLabel("airFryer"), "Air fryer");
+});
+
+test("blessings fund and thank-you notes take the couple's own word", () => {
+  const f = FUND_TEMPLATES.find((x) => x.id === "blessings")!;
+  assert.equal(fundTitle(f, "en", null), "Gifts & blessings");
+  assert.equal(fundTitle(f, "en", "Shagun"), "Shagun & blessings");
+  assert.equal(fundTitle(f, "hi", "सलामी"), "सलामी और आशीर्वाद");
+  const note = thankYouNote({ lang: "en", tone: "warm", guest: "Ayesha", gift: null, amount: 2100, fund: null, couple: "Z & S", word: "Salami" });
+  assert.match(note, /your salami of ₹2,100/);
+  assert.match(thankYouNote({ lang: "en", tone: "warm", guest: null, gift: null, amount: 501, fund: null, couple: "A & B" }), /your gift of ₹501/);
+});
+
+test("couples can name their own sections", () => {
+  assert.equal(categoryOf("c:Wall art").en, "Wall art");
+  assert.equal(categoryOf("kitchen").en, "Kitchen");
+  assert.equal(categoryOf("nonsense").key, "other");
 });

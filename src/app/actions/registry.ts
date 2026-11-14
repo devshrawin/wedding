@@ -10,6 +10,7 @@ import { newId } from "@/lib/ids";
 import { allow } from "@/lib/rate-limit";
 import { fail, type Result } from "@/lib/result";
 import { isValidUpiId, normalizePhone, slugBase, THEMES } from "@/lib/utils";
+import { TRADITIONS, type Tradition } from "@/lib/traditions";
 
 const name = z.string().trim().min(1).max(40);
 const optional = (max: number) =>
@@ -33,14 +34,21 @@ const date = z
   .transform((v) => v || null);
 const theme = z.enum(Object.keys(THEMES) as [string, ...string[]]);
 
-const createSchema = z.object({
+const ceremonySchema = z.object({
+  tradition: z.enum(TRADITIONS.map((t) => t.key) as [Tradition, ...Tradition[]]).default("none"),
+  greeting: optional(60),
+  ledgerHeading: optional(80),
+  giftWord: optional(24),
+});
+
+const createSchema = ceremonySchema.extend({
   partnerOne: name,
   partnerTwo: name,
   weddingDate: date,
   city: optional(60),
   note: optional(400),
   photo,
-  theme: theme.default("sindoor"),
+  theme: theme.default("ruby"),
   catalogIds: z.array(z.string()).max(60).default([]),
   fundIds: z.array(z.string()).max(10).default([]),
   lang: z.enum(["en", "hi"]).default("en"),
@@ -77,8 +85,12 @@ export async function createRegistry(input: z.input<typeof createSchema>): Promi
       city: d.city,
       note: d.note,
       theme: d.theme,
+      tradition: d.tradition,
+      greeting: d.greeting,
+      ledgerHeading: d.ledgerHeading,
+      giftWord: d.giftWord,
     });
-    const rows = seedRows(id, d.catalogIds, d.fundIds, d.lang);
+    const rows = seedRows(id, d.catalogIds, d.fundIds, d.lang, d.giftWord);
       if (rows.length) await tx.insert(schema.items).values(rows);
     });
   } catch (e) {
@@ -113,6 +125,17 @@ export async function updateDetails(slug: string, input: z.input<typeof detailsS
     .set({ ...rest, ...(photo === undefined ? {} : { photo }) })
     .where(eq(schema.registries.id, m.registry.id));
   if (photo !== undefined) await deleteImage(m.registry.id, m.registry.photo);
+  return { ok: true };
+}
+
+/** Ceremony style and the couple's own words. Clearing a field hides it. */
+export async function updateCeremony(slug: string, input: z.input<typeof ceremonySchema>): Promise<Result> {
+  const m = await manage(slug);
+  if (!m) return fail("auth");
+  const parsed = ceremonySchema.safeParse(input);
+  if (!parsed.success) return fail("invalid");
+  const db = await getDb();
+  await db.update(schema.registries).set(parsed.data).where(eq(schema.registries.id, m.registry.id));
   return { ok: true };
 }
 

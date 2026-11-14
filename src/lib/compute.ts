@@ -128,6 +128,8 @@ export function thankYouNote(p: {
   amount: number | null; // for cash
   fund: string | null;
   couple: string;
+  /** the couple's word for gift money ("Shagun", "Gift"…); defaults to neutral wording */
+  word?: string | null;
 }): string {
   const name = p.guest?.trim();
   const amt = p.amount ? "₹" + p.amount.toLocaleString("en-IN") : null;
@@ -136,27 +138,27 @@ export function thankYouNote(p: {
     const what = p.gift
       ? `आपने हमारे लिए “${p.gift}” चुना`
       : p.fund && amt
-        ? `आपने “${p.fund}” के लिए ${amt} का शगुन भेजा`
+        ? `आपने “${p.fund}” के लिए ${amt} का ${p.word || "तोहफ़ा"} भेजा`
         : amt
-          ? `आपने ${amt} का शगुन भेजा`
+          ? `आपने ${amt} का ${p.word || "तोहफ़ा"} भेजा`
           : "आपने इतना प्यारा तोहफ़ा भेजा";
     if (p.tone === "formal")
       return `${hello}\n\n${what}, इसके लिए हम हृदय से आभारी हैं। आपका आशीर्वाद हमारे नए जीवन की सबसे बड़ी पूँजी है।\n\nसादर प्रणाम,\n${p.couple}`;
     if (p.tone === "fun")
       return `${hello} 🎉\n\n${what}, सच में, दिल खुश हो गया! अब घर आइए, चाय हमारी तरफ़ से पक्की। ☕\n\nढेर सारा प्यार,\n${p.couple}`;
-    return `${hello} 🙏\n\n${what}, दिल से धन्यवाद। आपका प्यार और आशीर्वाद हमारे लिए बहुत मायने रखता है। जल्द ही मिलते हैं!\n\nसप्रेम,\n${p.couple}`;
+    return `${hello}\n\n${what}, दिल से धन्यवाद। आपका प्यार और आशीर्वाद हमारे लिए बहुत मायने रखता है। जल्द ही मिलते हैं!\n\nसप्रेम,\n${p.couple}`;
   }
   const hello = name ? `Dear ${name},` : "Hello,";
   const what = p.gift
     ? `the ${p.gift}`
     : p.fund && amt
-      ? `your shagun of ${amt} towards our ${p.fund}`
+      ? `your ${p.word ? p.word.toLowerCase() : "gift"} of ${amt} towards our ${p.fund}`
       : amt
-        ? `your shagun of ${amt}`
+        ? `your ${p.word ? p.word.toLowerCase() : "gift"} of ${amt}`
         : "your lovely gift";
   if (p.tone === "formal")
     return `${hello}\n\nThank you so much for ${what}. We are truly grateful for your blessings as we begin our new life together.\n\nWith warm regards,\n${p.couple}`;
   if (p.tone === "fun")
     return `${hello} 🎉\n\nYou're the best! Thank you for ${what}. It made our day. Chai's on us when you visit the new home! ☕\n\nLots of love,\n${p.couple}`;
-  return `${hello} 🙏\n\nThank you from the bottom of our hearts for ${what}. Your love and blessings mean the world to us. Can't wait to see you soon!\n\nWith love,\n${p.couple}`;
+  return `${hello}\n\nThank you from the bottom of our hearts for ${what}. Your love and blessings mean the world to us. Can't wait to see you soon!\n\nWith love,\n${p.couple}`;
 }

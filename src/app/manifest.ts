@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Giftr: Wedding Registry & Shagun",
+    name: "Giftr: Wedding Gift Registry",
     short_name: "Giftr",
-    description: "Wedding gift registry and shagun, made for India.",
+    description: "Wedding gift registry and cash gifts, made for India.",
     start_url: "/dashboard",
     scope: "/",
     display: "standalone",

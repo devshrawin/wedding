@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1794599343889,
-      "tag": "0000_clear_yellow_claw",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1794601879706,
-      "tag": "0001_images_ratelimits_proof",
+      "when": 1794627275560,
+      "tag": "0000_init",
       "breakpoints": true
     }
   ]

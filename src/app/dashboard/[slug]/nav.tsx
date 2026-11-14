@@ -14,7 +14,7 @@ export function DashboardNav({ slug, pending }: { slug: string; pending: number 
   const tabs = [
     { href: base, icon: Home, label: tr("Home", "होम") },
     { href: `${base}/gifts`, icon: Gift, label: tr("Wishlist", "सूची") },
-    { href: `${base}/shagun`, icon: HandCoins, label: tr("Shagun", "शगुन"), badge: pending },
+    { href: `${base}/received`, icon: HandCoins, label: tr("Received", "प्राप्त"), badge: pending },
     { href: `${base}/share`, icon: Send, label: tr("Share", "शेयर") },
     { href: `${base}/settings`, icon: Settings, label: tr("Settings", "सेटिंग") },
   ];

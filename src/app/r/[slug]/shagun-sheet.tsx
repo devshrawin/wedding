@@ -10,7 +10,7 @@ import { Field } from "@astryxdesign/core/Field";
 import { Icon } from "@astryxdesign/core/Icon";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
-import { ArrowLeft, Check, CreditCard, HandHeart, ShieldCheck, Smartphone, Sparkles } from "lucide-react";
+import { ArrowLeft, Check, Mail, PartyPopper, CreditCard, HandHeart, ShieldCheck, Smartphone, Sparkles } from "lucide-react";
 import { confirmRazorpay, contribute, startRazorpay } from "@/app/actions/guest";
 import { useTr } from "@/components/lang";
 import { CopyButton, toast } from "@/components/ui/feedback";
@@ -47,6 +47,7 @@ export function ShagunSheet({
   upi,
   razorpay,
   guestName,
+  giftWord,
   onClose,
 }: {
   slug: string;
@@ -55,6 +56,7 @@ export function ShagunSheet({
   upi: { id: string; name: string } | null;
   razorpay: boolean;
   guestName: string | null;
+  giftWord: string;
   onClose: () => void;
 }) {
   const tr = useTr();
@@ -76,7 +78,7 @@ export function ShagunSheet({
   const overCap = cap != null && amount > cap;
   const identityOk = guest.anonymous || guest.name.trim().length > 0;
   const ready = amount >= 1 && amount <= 1_000_000 && !overCap && identityOk;
-  const upiLink = upi ? buildUpiLink({ pa: upi.id, pn: upi.name, am: amount, tn: `Shagun for ${couple}`.slice(0, 50) }) : "";
+  const upiLink = upi ? buildUpiLink({ pa: upi.id, pn: upi.name, am: amount, tn: `${giftWord} for ${couple}`.slice(0, 50) }) : "";
 
   useEffect(() => {
     const saved = loadGuest();
@@ -136,7 +138,7 @@ export function ShagunSheet({
 
   const title =
     step === "done"
-      ? tr("Thank you! 🙏", "धन्यवाद! 🙏")
+      ? tr("Thank you!", "धन्यवाद!")
       : step === "upi"
         ? tr(`Pay ${inr(amount)} by UPI`, `UPI से ${inr(amount)} भेजें`)
         : item.kind === "fund"
@@ -257,7 +259,7 @@ export function ShagunSheet({
               <div>
                 <p className="font-semibold text-primary">{tr("After paying, come back here", "भुगतान के बाद यहाँ वापस आएँ")}</p>
                 <Text as="p" type="supporting" display="block">
-                  {tr("The couple confirms your shagun when they see it in their bank. A screenshot or reference number helps them find it.", "जोड़ा बैंक में देखकर आपके शगुन की पुष्टि करेगा। स्क्रीनशॉट या रेफ़रेंस नंबर से उन्हें आसानी होगी।")}
+                  {tr("The couple confirms your gift when they see it in their bank. A screenshot or reference number helps them find it.", "जोड़ा बैंक में देखकर आपके तोहफ़े की पुष्टि करेगा। स्क्रीनशॉट या रेफ़रेंस नंबर से उन्हें आसानी होगी।")}
                 </Text>
               </div>
               <Field label={tr("Payment screenshot", "भुगतान का स्क्रीनशॉट")} inputID="upi-proof" isOptional>
@@ -272,9 +274,9 @@ export function ShagunSheet({
 
       {step === "done" && (
         <div className="pb-2 text-center">
-          <p className="text-6xl" aria-hidden>
-            {doneMethod === "cash" ? "✉️" : "🎉"}
-          </p>
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-brand-soft text-accent" aria-hidden>
+            {doneMethod === "cash" ? <Mail className="size-8" /> : <PartyPopper className="size-8" />}
+          </span>
           <p className="mt-3 font-display text-4xl font-semibold text-accent">{inr(amount)}</p>
           <div className="mt-3">
             <Banner
@@ -282,9 +284,9 @@ export function ShagunSheet({
               collapsible={false}
               title={
                 doneMethod === "cash"
-                  ? tr(`We've told ${couple} to expect your shagun`, `हमने ${couple} को बता दिया है`)
+                  ? tr(`We've told ${couple} to expect your ${giftWord.toLowerCase()}`, `हमने ${couple} को बता दिया है`)
                   : doneMethod === "razorpay"
-                    ? tr(`Your shagun has reached ${couple}`, `आपका शगुन ${couple} तक पहुँच गया`)
+                    ? tr(`Your ${giftWord.toLowerCase()} has reached ${couple}`, `आपका ${giftWord} ${couple} तक पहुँच गया`)
                     : tr("Sent to the couple for confirmation", "पुष्टि के लिए जोड़े को भेजा गया")
               }
               description={

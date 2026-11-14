@@ -8,6 +8,7 @@ import { razorpayEnabled } from "@/lib/data";
 import { getDb, schema } from "@/lib/db";
 import { getTr } from "@/lib/i18n";
 import { prettyPhone } from "@/lib/utils";
+import type { Tradition } from "@/lib/traditions";
 import { SettingsForms } from "./settings-forms";
 
 export default async function SettingsPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -41,6 +42,12 @@ export default async function SettingsPage({ params }: { params: Promise<{ slug:
           showAmounts: registry.showAmounts,
           upiId: registry.upiId ?? "",
           upiName: registry.upiName ?? "",
+          ceremony: {
+            tradition: registry.tradition as Tradition,
+            greeting: registry.greeting ?? "",
+            ledgerHeading: registry.ledgerHeading ?? "",
+            giftWord: registry.giftWord ?? "",
+          },
         }}
         members={members.map((m) => ({ id: m.id, name: m.name, phone: prettyPhone(m.phone), relation: m.relation }))}
       />

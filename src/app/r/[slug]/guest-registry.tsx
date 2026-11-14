@@ -19,7 +19,8 @@ import { useLang, useTr } from "@/components/lang";
 import { toast } from "@/components/ui/feedback";
 import { ItemThumb } from "@/components/ui/kit";
 import { Sheet } from "@/components/ui/sheet";
-import { CATEGORIES } from "@/lib/catalog";
+import { CATEGORIES, categoryOf } from "@/lib/catalog";
+import { GiftIcon } from "@/components/icons";
 import { errorText } from "@/lib/result";
 import { cn, inr } from "@/lib/utils";
 import { GuestFields, loadGuest, saveGuest, type GuestInfo } from "./guest-fields";
@@ -31,7 +32,7 @@ export type GuestItem = {
   title: string;
   description: string | null;
   imageUrl: string | null;
-  emoji: string | null;
+  icon: string | null;
   url: string | null;
   store: string | null;
   category: string;
@@ -56,6 +57,8 @@ type Props = {
   upi: { id: string; name: string } | null;
   razorpay: boolean;
   guestName: string | null;
+  /** the couple's word for gift money, e.g. "Shagun"; null = neutral */
+  giftWord: string;
 };
 
 const PRICE_BANDS = [
@@ -65,7 +68,7 @@ const PRICE_BANDS = [
   { k: "gt7", en: "Above ₹7,000", hi: "₹7,000 से ऊपर", test: (p: number) => p > 7000 },
 ];
 
-export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName }: Props) {
+export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName, giftWord }: Props) {
   const tr = useTr();
   const lang = useLang();
   const [category, setCategory] = useState("all");
@@ -77,7 +80,10 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName }:
   const funds = items.filter((i) => i.kind === "fund");
   const products = items.filter((i) => i.kind === "product");
   const mine = products.filter((i) => i.mine);
-  const cats = CATEGORIES.filter((c) => products.some((p) => p.category === c.key));
+  // Built-in sections in catalog order, then the couple's own sections.
+  const cats = [...new Set(products.map((p) => p.category))]
+    .map(categoryOf)
+    .sort((a, b) => (CATEGORIES.findIndex((c) => c.key === a.key) + 1 || 99) - (CATEGORIES.findIndex((c) => c.key === b.key) + 1 || 99));
   const bands = PRICE_BANDS.filter((b) => products.some((p) => p.price != null && b.test(p.price)));
 
   const shown = useMemo(
@@ -96,6 +102,7 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName }:
 
   const active = items.find((i) => i.id === openItem) ?? null;
   const shagunItem = items.find((i) => i.id === shagunFor) ?? null;
+  const sendLabel = lang === "hi" ? `${giftWord} भेजें` : `Send ${giftWord.toLowerCase()}`;
   const filtered = category !== "all" || band !== "all" || availableOnly;
 
   if (!items.length) {
@@ -122,7 +129,7 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName }:
               {mine.map((i) => (
                 <li key={i.id}>
                   <button type="button" onClick={() => setOpenItem(i.id)} className="flex w-full items-center gap-3 rounded-xl bg-surface p-2.5 text-left">
-                    <ItemThumb imageUrl={i.imageUrl} emoji={i.emoji} className="size-12 shrink-0 text-[11px]" />
+                    <ItemThumb imageUrl={i.imageUrl} icon={i.icon} className="size-12 shrink-0 text-[11px]" />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate font-semibold text-primary">{i.title}</span>
                       <span className="block text-sm text-secondary">
@@ -139,7 +146,7 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName }:
 
       {funds.length > 0 && (
         <section className="mt-8">
-          <Heading level={2}>{tr("Send shagun", "शगुन भेजें")}</Heading>
+          <Heading level={2}>{sendLabel}</Heading>
           <Text as="p" type="supporting" display="block">
             {tr("Give any amount, straight to the couple by UPI.", "कोई भी राशि दें, UPI से सीधे जोड़े को।")}
           </Text>
@@ -149,8 +156,8 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName }:
                 <Card padding={4} minHeight="100%">
                   <div className="flex h-full flex-col">
                     <div className="flex items-start gap-3">
-                      <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-brand-soft text-3xl" aria-hidden>
-                        {f.emoji || "💝"}
+                      <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-brand-soft text-accent">
+                        <GiftIcon name={f.icon} className="size-7" />
                       </span>
                       <div className="min-w-0">
                         <h3 className="text-lg font-bold leading-tight text-primary">{f.title}</h3>
@@ -163,7 +170,7 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName }:
                       </div>
                     )}
                     <div className="mt-auto pt-4">
-                      <Button variant="primary" size="lg" width="100%" label={tr("Send shagun", "शगुन भेजें")} icon={<Icon icon={HandCoins} />} onClick={() => setShagunFor(f.id)} />
+                      <Button variant="primary" size="lg" width="100%" label={sendLabel} icon={<Icon icon={HandCoins} />} onClick={() => setShagunFor(f.id)} />
                     </div>
                   </div>
                 </Card>
@@ -188,7 +195,7 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName }:
                 variant="secondary"
                 value={category}
                 presentation="adaptive"
-                options={[{ value: "all", label: tr("All categories", "सभी श्रेणियाँ") }, ...cats.map((c) => ({ value: c.key, label: `${c.emoji} ${lang === "hi" ? c.hi : c.en}` }))]}
+                options={[{ value: "all", label: tr("All categories", "सभी श्रेणियाँ") }, ...cats.map((c) => ({ value: c.key, label: lang === "hi" ? c.hi : c.en }))]}
                 onChange={setCategory}
               />
             )}
@@ -222,7 +229,7 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName }:
                       )}
                     >
                       <div className="relative w-full">
-                        <ItemThumb imageUrl={p.imageUrl} emoji={p.emoji} className="aspect-square w-full rounded-none text-2xl" />
+                        <ItemThumb imageUrl={p.imageUrl} icon={p.icon} className="aspect-square w-full rounded-none text-2xl" />
                         <span className="absolute left-2 top-2">
                           {p.state !== "available" ? (
                             <Badge variant={p.mine ? "success" : "neutral"} icon={<Check className="size-3" aria-hidden />} label={p.mine ? tr("Yours", "आपका") : p.state === "funded" ? tr("Gifted", "मिल गया") : tr("Reserved", "चुन लिया गया")} />
@@ -277,7 +284,7 @@ export function GuestRegistry({ slug, couple, items, upi, razorpay, guestName }:
           }}
         />
       )}
-      {shagunItem && <ShagunSheet slug={slug} couple={couple} item={shagunItem} upi={upi} razorpay={razorpay} guestName={guestName} onClose={() => setShagunFor(null)} />}
+      {shagunItem && <ShagunSheet slug={slug} couple={couple} item={shagunItem} upi={upi} razorpay={razorpay} guestName={guestName} giftWord={giftWord} onClose={() => setShagunFor(null)} />}
     </>
   );
 }
@@ -336,13 +343,13 @@ function ItemSheet({ slug, item, guestName, onClose, onChipIn }: { slug: string;
     />
   ) : null;
 
-  const title = step === "done" ? tr("It's yours to gift! 🎉", "यह तोहफ़ा अब आपके नाम! 🎉") : step === "form" ? tr("Reserve this gift", "यह तोहफ़ा चुनें") : item.title;
+  const title = step === "done" ? tr("It's yours to gift!", "यह तोहफ़ा अब आपके नाम!") : step === "form" ? tr("Reserve this gift", "यह तोहफ़ा चुनें") : item.title;
 
   return (
     <Sheet open onOpenChange={(o) => !o && onClose()} title={title} purpose={step === "form" ? "form" : "info"} height={step === "form" ? "tall" : "hug"}>
       {step === "view" && (
         <div className="pb-2">
-          <ItemThumb imageUrl={item.imageUrl} emoji={item.emoji} className="mx-auto aspect-[4/3] w-full max-w-sm text-4xl" />
+          <ItemThumb imageUrl={item.imageUrl} icon={item.icon} className="mx-auto aspect-[4/3] w-full max-w-sm text-4xl" />
           <div className="mt-4 flex items-baseline justify-between gap-3">
             <p className="font-display text-3xl font-semibold text-primary">{item.price ? inr(item.price) : ""}</p>
             {item.store && <Text type="supporting">{item.store}</Text>}
@@ -372,7 +379,7 @@ function ItemSheet({ slug, item, guestName, onClose, onChipIn }: { slug: string;
             </div>
           ) : item.state !== "available" ? (
             <div className="mt-5">
-              <Banner status="info" collapsible={false} title={tr("Someone is already gifting this", "यह तोहफ़ा कोई और दे रहा है")} description={tr("Please pick another one 🙏", "कृपया कोई और चुनें 🙏")} />
+              <Banner status="info" collapsible={false} title={tr("Someone is already gifting this", "यह तोहफ़ा कोई और दे रहा है")} description={tr("Please pick another one", "कृपया कोई और चुनें")} />
             </div>
           ) : (
             <div className="mt-5 space-y-2.5">
@@ -406,7 +413,7 @@ function ItemSheet({ slug, item, guestName, onClose, onChipIn }: { slug: string;
           }}
         >
           <div className="flex items-center gap-3 rounded-xl bg-muted p-2.5">
-            <ItemThumb imageUrl={item.imageUrl} emoji={item.emoji} className="size-14 shrink-0 text-[13px]" />
+            <ItemThumb imageUrl={item.imageUrl} icon={item.icon} className="size-14 shrink-0 text-[13px]" />
             <div className="min-w-0">
               <p className="line-clamp-2 text-[15px] font-semibold leading-snug text-primary">{item.title}</p>
               {item.price && <p className="text-[15px] text-secondary">{inr(item.price)}</p>}
@@ -430,9 +437,9 @@ function ItemSheet({ slug, item, guestName, onClose, onChipIn }: { slug: string;
 
       {step === "done" && (
         <div className="pb-2 text-center">
-          <p className="text-6xl" aria-hidden>
-            🎁
-          </p>
+          <span className="mx-auto grid size-16 place-items-center rounded-full bg-brand-soft text-accent" aria-hidden>
+            <Gift className="size-8" />
+          </span>
           <Text as="p" type="large" display="block" justify="center">
             {tr("We've marked it as reserved, so nobody else will bring the same gift.", "हमने इसे आपके नाम कर दिया है, ताकि कोई और वही तोहफ़ा न लाए।")}
           </Text>

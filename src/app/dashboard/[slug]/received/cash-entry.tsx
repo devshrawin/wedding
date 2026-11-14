@@ -7,7 +7,7 @@ import { Icon } from "@astryxdesign/core/Icon";
 import { Selector } from "@astryxdesign/core/Selector";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { NotebookPen } from "lucide-react";
-import { addCashEntry } from "@/app/actions/shagun";
+import { addCashEntry } from "@/app/actions/received";
 import { useTr } from "@/components/lang";
 import { toast } from "@/components/ui/feedback";
 import { AmountChips } from "@/components/ui/kit";
@@ -46,7 +46,7 @@ export function CashEntryButton({ slug, funds }: { slug: string; funds: { id: st
         purpose="form"
         height="tall"
         title={tr("Cash / envelope entry", "नकद / लिफ़ाफ़ा एंट्री")}
-        description={tr("Note down shagun received in person, just like the chandlo notebook.", "हाथ में मिला शगुन यहाँ लिखें, बिल्कुल चांदलो की कॉपी की तरह।")}
+        description={tr("Note down cash gifts received in person, just like the old notebook.", "हाथ में मिला उपहार यहाँ लिखें, बिल्कुल पुरानी कॉपी की तरह।")}
       >
         <form
           className="space-y-4 pb-2"
@@ -68,7 +68,7 @@ export function CashEntryButton({ slug, funds }: { slug: string; funds: { id: st
               isOptional
               width="100%"
               value={f.itemId || "general"}
-              options={[{ value: "general", label: tr("General shagun", "सामान्य शगुन") }, ...funds.map((x) => ({ value: x.id, label: x.title }))]}
+              options={[{ value: "general", label: tr("General gift", "सामान्य उपहार") }, ...funds.map((x) => ({ value: x.id, label: x.title }))]}
               onChange={(v) => set({ itemId: v === "general" ? "" : v })}
               presentation="adaptive"
             />

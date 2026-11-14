@@ -1,6 +1,6 @@
 import "server-only";
 import { getManagedRegistry, getUser } from "./auth";
-import { CATALOG, FUND_TEMPLATES } from "./catalog";
+import { CATALOG, FUND_TEMPLATES, fundTitle } from "./catalog";
 import { newId } from "./ids";
 
 /** Resolves the signed-in user's right to manage a registry (owner or family). */
@@ -11,15 +11,15 @@ export async function manage(slug: string) {
   return m ? { user, ...m } : null;
 }
 
-export function seedRows(registryId: string, catalogIds: string[], fundIds: string[], lang: "en" | "hi", startAt = 0) {
+export function seedRows(registryId: string, catalogIds: string[], fundIds: string[], lang: "en" | "hi", giftWord: string | null, startAt = 0) {
   let position = startAt;
   const funds = FUND_TEMPLATES.filter((f) => fundIds.includes(f.id)).map((f) => ({
     id: newId(),
     registryId,
     kind: "fund",
-    title: lang === "hi" ? f.hi : f.en,
+    title: fundTitle(f, lang, giftWord),
     description: lang === "hi" ? f.descHi : f.descEn,
-    emoji: f.emoji,
+    icon: f.icon,
     category: "fund",
     price: f.target,
     position: position++,
@@ -29,7 +29,7 @@ export function seedRows(registryId: string, catalogIds: string[], fundIds: stri
     registryId,
     kind: "product",
     title: lang === "hi" ? c.hi : c.en,
-    emoji: c.emoji,
+    icon: c.icon,
     category: c.category,
     price: c.price,
     position: position++,

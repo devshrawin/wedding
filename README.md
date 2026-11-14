@@ -6,13 +6,16 @@ Giftr gives a couple one link for their wedding. Guests open it on any phone (no
 
 - **60-second setup:** names, date, city, with wedding essentials and a shagun fund already ticked.
 - **Paste any product link:** Amazon, Flipkart, Myntra, Pepperfry, Croma and more. Title, photo and price are fetched on the server. When a store blocks that, the couple adds the price and a photo from their own gallery.
-- **Shagun the Indian way:** odd-amount suggestions (₹501, ₹1,101, ₹2,101) and a "+₹1 for good luck" nudge.
+- **Neutral by default, any faith by choice:** pages say "We're getting married" and "Gift" unless the couple picks a ceremony style (Hindu, Muslim, Christian, Sikh, Jain, Parsi, civil, or their own words). A style only suggests the greeting, the word for gift money (Shagun, Salami…) and a ledger heading; every word is editable, and matching faith items appear in the catalog.
+- **Odd-amount suggestions:** ₹501, ₹1,101, ₹2,101 and a "+₹1 for good luck" nudge; guests can type any amount.
+- **One icon language:** every gift and fund uses a line icon from one set (lucide plus hand-drawn Indian kitchen and faith items), never emoji.
+- **Your own sections:** add any gift with your own photo or icon, and file it under a section you name.
 - **Chip-in gifts:** several guests can share a big gift. Guests see how much is still needed, and pledges can never add up to more than the price.
 - **Private by default:** guests never see who gave what or how much. Link-only, password or invite-only access; hide individual items; hide reserved gifts.
 - **UPI native:** money goes straight to the couple's UPI ID (deep link + QR). Zero fees. Guests can attach a payment screenshot. Optional Razorpay checkout.
 - **Family mode:** parents help manage the registry from their own phone. Only the couple can change where money goes.
 - **Thank-you notes:** generated in Hindi or English, three tones, one tap to WhatsApp.
-- **The vahi:** a traditional, print-ready ledger (Save as PDF) plus CSV for Excel, including cash envelopes entered at the venue.
+- **The ledger:** a print-ready gift ledger (Save as PDF) plus CSV for Excel, including cash envelopes entered at the venue.
 - **Share card + QR:** drawn in the browser, so Hindi names render properly.
 - **Hindi + English**, large touch targets, installable PWA, light on low-end Android.
 
@@ -26,7 +29,7 @@ npm run dev          # http://localhost:3000
 With no configuration the app uses an **embedded Postgres (PGlite)** stored in `./.data` and runs in **demo mode**, where the login code is shown on screen instead of being sent by SMS.
 
 ```bash
-npm test             # 19 unit tests: money maths, link parser, SSRF guard, signatures,
+npm test             # 24 unit tests: money maths, link parser, SSRF guard, signatures,
                      # OTP resend/lockout, shared rate limits, image checks (in-memory Postgres)
 npm run build && INSECURE_COOKIES=1 DEMO_MODE=true AUTH_SECRET=some-long-secret npm start
 npm run test:e2e     # full browser walkthrough + axe accessibility audit of 11 screens
@@ -52,7 +55,7 @@ Deploy anywhere Node runs (Vercel, Railway, Fly, a VPS). On serverless hosts you
 
 The UI is built on **[Astryx](https://github.com/meta/astryx)** (`@astryxdesign/core` 0.7.15) with Tailwind for layout.
 
-- **Theme:** `src/themes/vivah/vivahTheme.ts` extends Astryx's "chocolate" theme: sindoor red accent, marigold highlights, ivory paper, **Mukta** body text (Latin + Devanagari on one baseline) and **Fraunces** headings. Secondary text is darkened to meet WCAG AA. Rebuild with `npx astryx theme build src/themes/vivah/vivahTheme.ts`.
+- **Theme:** `src/themes/vivah/vivahTheme.ts` extends Astryx's "chocolate" theme: ruby red accent, marigold highlights, ivory paper, **Mukta** body text (Latin + Devanagari on one baseline) and **Fraunces** headings. Secondary text is darkened to meet WCAG AA. Rebuild with `npx astryx theme build src/themes/vivah/vivahTheme.ts`.
 - **Per-registry colour:** couples pick Sindoor, Marigold, Mehendi or Peacock; `src/lib/theme-style.ts` re-points the Astryx accent tokens for that registry's pages only.
 - **Components used:** Button, IconButton, Card, ClickableCard, SelectableCard, TextInput, TextArea, DateInput, Selector, Switch, ToggleButton, SegmentedControl, Stepper, BottomSheet, Banner, Badge, Avatar, ProgressBar, EmptyState, Heading, Text, Toast.
 - **Logo:** a gift tied with a bow on a sindoor tile with a marigold knot (`src/components/brand.tsx`, `public/icon.svg`, generated PWA icons at `/icons/*`).

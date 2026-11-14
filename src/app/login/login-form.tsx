@@ -66,7 +66,7 @@ export function LoginForm({ next }: { next: string }) {
           className="space-y-5"
         >
           <div>
-            <Heading level={1}>{tr("Welcome", "स्वागत है")} 🙏</Heading>
+            <Heading level={1}>{tr("Welcome", "स्वागत है")}</Heading>
             <Text as="p" type="supporting" display="block">
               {tr("Enter your mobile number. We'll send a 6-digit code.", "अपना मोबाइल नंबर डालें। हम 6 अंकों का कोड भेजेंगे।")}
             </Text>

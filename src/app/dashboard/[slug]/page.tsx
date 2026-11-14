@@ -34,7 +34,7 @@ export default async function Overview({ params, searchParams }: { params: Promi
 
   const checklist = [
     { done: items.length > 0, label: tr("Add your wishes", "अपनी पसंद जोड़ें"), hint: tr("Paste links, pick essentials, or open a fund.", "लिंक डालें, ज़रूरी सामान चुनें, या फंड खोलें।"), href: `${base}/gifts`, icon: Gift },
-    { done: !!registry.upiId, label: tr("Add your UPI ID", "अपनी UPI ID जोड़ें"), hint: tr("So shagun reaches you directly. Zero fees.", "ताकि शगुन सीधे आप तक पहुँचे। कोई शुल्क नहीं।"), href: `${base}/settings#upi`, icon: HandCoins },
+    { done: !!registry.upiId, label: tr("Add your UPI ID", "अपनी UPI ID जोड़ें"), hint: tr("So cash gifts reach you directly. Zero fees.", "ताकि नकद उपहार सीधे आप तक पहुँचें। कोई शुल्क नहीं।"), href: `${base}/settings#upi`, icon: HandCoins },
     { done: stats.guests > 0, label: tr("Share with family & friends", "परिवार और दोस्तों को भेजें"), hint: tr("One tap on WhatsApp, or print the QR card.", "WhatsApp पर एक टैप, या QR कार्ड छापें।"), href: `${base}/share`, icon: Send },
   ];
   const setupDone = checklist.every((c) => c.done);
@@ -65,7 +65,7 @@ export default async function Overview({ params, searchParams }: { params: Promi
           </div>
           <dl className="mt-5 grid grid-cols-3 gap-2 text-center">
             {[
-              { v: inr(stats.cashReceived) || "₹0", l: tr("Shagun", "शगुन") },
+              { v: inr(stats.cashReceived) || "₹0", l: tr("Cash", "नकद") },
               { v: inr(stats.giftsValue) || "₹0", l: tr("Gifts", "तोहफ़े") },
               { v: String(stats.guests), l: tr("Guests", "मेहमान") },
             ].map((s) => (
@@ -86,7 +86,7 @@ export default async function Overview({ params, searchParams }: { params: Promi
           )}
         </div>
         {stats.cashPending > 0 && (
-          <Link href={`${base}/shagun?filter=confirm`} className="flex min-h-12 items-center justify-between gap-2 border-t border-border bg-[var(--color-background-yellow)] px-5 py-3 text-[15px] font-semibold text-primary">
+          <Link href={`${base}/received?filter=confirm`} className="flex min-h-12 items-center justify-between gap-2 border-t border-border bg-[var(--color-background-yellow)] px-5 py-3 text-[15px] font-semibold text-primary">
             <span>{tr(`${inr(stats.cashPending)} waiting for your confirmation`, `${inr(stats.cashPending)} आपकी पुष्टि के इंतज़ार में`)}</span>
             <ChevronRight className="size-5" aria-hidden />
           </Link>
@@ -120,7 +120,7 @@ export default async function Overview({ params, searchParams }: { params: Promi
             </Card>
           </div>
           {hasFunds && !registry.upiId && (
-            <p className="mt-2 px-1 text-sm text-secondary">{tr("Until you add a UPI ID, guests can only pledge to give shagun in person.", "जब तक UPI ID नहीं जुड़ती, मेहमान सिर्फ़ ख़ुद आकर शगुन देने का वादा कर सकते हैं।")}</p>
+            <p className="mt-2 px-1 text-sm text-secondary">{tr("Until you add a UPI ID, guests can only pledge to give cash in person.", "जब तक UPI ID नहीं जुड़ती, मेहमान सिर्फ़ ख़ुद आकर नकद देने का वादा कर सकते हैं।")}</p>
           )}
         </section>
       )}
@@ -133,7 +133,7 @@ export default async function Overview({ params, searchParams }: { params: Promi
           </div>
           {pending.length > 5 && (
             <div className="mt-2">
-              <Button variant="ghost" width="100%" href={`${base}/shagun?filter=confirm`} label={tr(`See all ${pending.length}`, `सभी ${pending.length} देखें`)} />
+              <Button variant="ghost" width="100%" href={`${base}/received?filter=confirm`} label={tr(`See all ${pending.length}`, `सभी ${pending.length} देखें`)} />
             </div>
           )}
         </section>
@@ -143,7 +143,7 @@ export default async function Overview({ params, searchParams }: { params: Promi
         <section>
           <div className="flex items-baseline justify-between">
             <Heading level={2}>{tr("Latest blessings", "ताज़ा आशीर्वाद")}</Heading>
-            <Link href={`${base}/shagun`} className="text-[15px] font-semibold text-accent">
+            <Link href={`${base}/received`} className="text-[15px] font-semibold text-accent">
               {tr("See all", "सभी देखें")}
             </Link>
           </div>
@@ -166,7 +166,7 @@ export default async function Overview({ params, searchParams }: { params: Promi
               <ul className="divide-y divide-[var(--color-border)]">
                 {needed.map((i) => (
                   <li key={i.id} className="flex items-center gap-3 p-3">
-                    <ItemThumb imageUrl={i.imageUrl} emoji={i.emoji} className="size-14 shrink-0 text-[13px]" />
+                    <ItemThumb imageUrl={i.imageUrl} icon={i.icon} className="size-14 shrink-0 text-[13px]" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-semibold text-primary">{i.title}</p>
                       {i.kind === "fund" || i.raised > 0 ? (

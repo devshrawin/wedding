@@ -14,7 +14,8 @@ import { Switch } from "@astryxdesign/core/Switch";
 import { Text } from "@astryxdesign/core/Text";
 import { TextInput } from "@astryxdesign/core/TextInput";
 import { Globe, KeyRound, MailCheck, ShieldCheck, Trash2, UserPlus } from "lucide-react";
-import { addFamilyMember, deleteRegistry, removeFamilyMember, updateDetails, updatePrivacy, updateUpi } from "@/app/actions/registry";
+import { addFamilyMember, deleteRegistry, removeFamilyMember, updateCeremony, updateDetails, updatePrivacy, updateUpi } from "@/app/actions/registry";
+import { CeremonyFields, type CeremonyDraft } from "@/components/ceremony-fields";
 import { useTr } from "@/components/lang";
 import { RegistryFields, type RegistryDraft } from "@/components/registry-fields";
 import { toast } from "@/components/ui/feedback";
@@ -39,6 +40,7 @@ type Props = {
     showAmounts: boolean;
     upiId: string;
     upiName: string;
+    ceremony: CeremonyDraft;
   };
   members: { id: string; name: string; phone: string; relation: string | null }[];
 };
@@ -79,11 +81,12 @@ export function SettingsForms({ slug, role, razorpay, registry, members }: Props
   return (
     <>
       {role === "family" && (
-        <Banner status="info" collapsible={false} title={tr("You're helping as family", "आप परिवार के रूप में मदद कर रहे हैं")} description={tr("You can manage gifts, shagun and thank-yous. Only the couple can change the payout UPI ID, family members, or delete the registry.", "आप तोहफ़े, शगुन और धन्यवाद सँभाल सकते हैं। UPI ID, परिवार के सदस्य या रजिस्ट्री हटाना सिर्फ़ जोड़ा कर सकता है।")} />
+        <Banner status="info" collapsible={false} title={tr("You're helping as family", "आप परिवार के रूप में मदद कर रहे हैं")} description={tr("You can manage gifts, cash gifts and thank-yous. Only the couple can change the payout UPI ID, family members, or delete the registry.", "आप तोहफ़े, नकद उपहार और धन्यवाद सँभाल सकते हैं। UPI ID, परिवार के सदस्य या रजिस्ट्री हटाना सिर्फ़ जोड़ा कर सकता है।")} />
       )}
       <PrivacySection slug={slug} registry={registry} />
       <UpiSection slug={slug} registry={registry} razorpay={razorpay} canEdit={role === "owner"} />
       <DetailsSection slug={slug} registry={registry} />
+      <CeremonySection slug={slug} initial={registry.ceremony} />
       <FamilySection slug={slug} members={members} canEdit={role === "owner"} />
       {role === "owner" && <DangerSection slug={slug} />}
     </>
@@ -191,13 +194,13 @@ function UpiSection({ slug, registry, razorpay, canEdit }: Pick<Props, "slug" | 
   return (
     <Section
       id="upi"
-      title={tr("Receive shagun by UPI", "UPI से शगुन पाएँ")}
+      title={tr("Receive cash gifts by UPI", "UPI से नकद उपहार पाएँ")}
       hint={tr("Guests pay straight into your account with any UPI app. Giftr never touches the money and charges nothing.", "मेहमान किसी भी UPI ऐप से सीधे आपके खाते में भेजते हैं। Giftr पैसे को छूता नहीं और कोई शुल्क नहीं लेता।")}
     >
       {!canEdit ? (
         <Text as="p" type="body" display="block">
           {registry.upiId
-            ? tr(`Shagun goes to ${registry.upiName} (${registry.upiId}). Only the couple can change this.`, `शगुन ${registry.upiName} (${registry.upiId}) को जाता है। इसे सिर्फ़ जोड़ा बदल सकता है।`)
+            ? tr(`Cash gifts go to ${registry.upiName} (${registry.upiId}). Only the couple can change this.`, `नकद उपहार ${registry.upiName} (${registry.upiId}) को जाता है। इसे सिर्फ़ जोड़ा बदल सकता है।`)
             : tr("The couple hasn't added a UPI ID yet. Only they can add it.", "जोड़े ने अभी UPI ID नहीं जोड़ी है। इसे सिर्फ़ वही जोड़ सकते हैं।")}
         </Text>
       ) : (
@@ -262,6 +265,26 @@ function DetailsSection({ slug, registry }: Pick<Props, "slug" | "registry">) {
   );
 }
 
+// ── Ceremony style ────────────────────────────────────────────────────
+
+function CeremonySection({ slug, initial }: { slug: string; initial: CeremonyDraft }) {
+  const tr = useTr();
+  const { pending, run } = useAction();
+  const [value, setValue] = useState<CeremonyDraft>(initial);
+  return (
+    <Section
+      id="ceremony"
+      title={tr("Ceremony style & wording", "विवाह की रीति और शब्द")}
+      hint={tr("Your page is neutral unless you choose otherwise. Change the greeting, your word for gift money, or the ledger heading anytime.", "जब तक आप न चुनें, आपका पेज सामान्य रहता है। अभिवादन, उपहार राशि का शब्द या बही का शीर्षक कभी भी बदलें।")}
+    >
+      <CeremonyFields value={value} onChange={setValue} />
+      <div className="mt-5">
+        <Button variant="primary" width="100%" isLoading={pending} label={tr("Save wording", "शब्द सेव करें")} onClick={() => run(() => updateCeremony(slug, value))} />
+      </div>
+    </Section>
+  );
+}
+
 // ── Family mode ───────────────────────────────────────────────────────
 
 function FamilySection({ slug, members, canEdit }: { slug: string; members: Props["members"]; canEdit: boolean }) {
@@ -272,7 +295,7 @@ function FamilySection({ slug, members, canEdit }: { slug: string; members: Prop
     <Section
       id="family"
       title={tr("Family mode", "फ़ैमिली मोड")}
-      hint={tr("Let parents or siblings help: confirm shagun, add cash entries, send thank-yous. They sign in with their own mobile number.", "माता-पिता या भाई-बहन भी मदद करें, शगुन की पुष्टि, नकद एंट्री, धन्यवाद संदेश। वे अपने मोबाइल नंबर से लॉग इन करते हैं।")}
+      hint={tr("Let parents or siblings help: confirm cash gifts, add cash entries, send thank-yous. They sign in with their own mobile number.", "माता-पिता या भाई-बहन भी मदद करें, उपहार की पुष्टि, नकद एंट्री, धन्यवाद संदेश। वे अपने मोबाइल नंबर से लॉग इन करते हैं।")}
     >
       {members.length > 0 && (
         <ul className="mb-4 divide-y divide-[var(--color-border)] rounded-xl border border-border">
@@ -332,7 +355,7 @@ function DangerSection({ slug }: { slug: string }) {
         status="error"
         collapsible={false}
         title={tr("Delete registry", "रजिस्ट्री हटाएँ")}
-        description={tr("Permanently deletes the registry, all gifts, photos and the shagun ledger. Download your ledger first.", "रजिस्ट्री, सारे तोहफ़े, फ़ोटो और शगुन की बही हमेशा के लिए हट जाएँगे। पहले बही डाउनलोड कर लें।")}
+        description={tr("Permanently deletes the registry, all gifts, photos and the gift ledger. Download your ledger first.", "रजिस्ट्री, सारे तोहफ़े, फ़ोटो और उपहार बही हमेशा के लिए हट जाएँगे। पहले बही डाउनलोड कर लें।")}
       >
         {open ? (
           <div className="space-y-3">

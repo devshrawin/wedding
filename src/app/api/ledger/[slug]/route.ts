@@ -27,7 +27,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
         cell(r.name ?? (r.anonymous ? "Anonymous" : "Guest")),
         cell(r.phone),
         cell(r.place),
-        r.kind === "reservation" ? "Gift" : "Shagun",
+        r.kind === "reservation" ? "Gift item" : "Cash gift",
         cell(r.itemTitle),
         r.method,
         r.amount ?? "",
@@ -40,7 +40,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   return new Response("﻿" + lines.join("\r\n"), {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
-      "Content-Disposition": `attachment; filename="shagun-ledger-${slug}.csv"`,
+      "Content-Disposition": `attachment; filename="gift-ledger-${slug}.csv"`,
       "Cache-Control": "no-store",
     },
   });

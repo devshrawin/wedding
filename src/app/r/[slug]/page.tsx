@@ -5,12 +5,13 @@ import { Card } from "@astryxdesign/core/Card";
 import { Heading } from "@astryxdesign/core/Heading";
 import { Text } from "@astryxdesign/core/Text";
 import { Lock } from "lucide-react";
-import { Mark, Toran } from "@/components/brand";
+import { Mark, Lights } from "@/components/brand";
 import { LangToggle } from "@/components/lang";
 import { checkAccess, getGuestKey } from "@/lib/auth";
 import { getRegistryBySlug, loadRegistryData, razorpayEnabled } from "@/lib/data";
 import { getTr } from "@/lib/i18n";
 import { registryThemeStyle } from "@/lib/theme-style";
+import { giftWordFor, greetingFor } from "@/lib/traditions";
 import { daysUntil, formatDate } from "@/lib/utils";
 import { GuestRegistry, type GuestItem } from "./guest-registry";
 import { UnlockForm } from "./unlock-form";
@@ -25,9 +26,9 @@ export async function generateMetadata({ params }: Params): Promise<Metadata> {
   const title = open ? `${registry.partnerOne} & ${registry.partnerTwo}: Wedding Registry` : "Private wedding registry";
   return {
     title,
-    description: "Bless the couple: pick a gift they'll love, or send shagun by UPI.",
+    description: "Bless the couple: pick a gift they'll love, or send a cash gift by UPI.",
     robots: { index: false, follow: false },
-    openGraph: { title, description: "Pick a gift they'll love, or send shagun by UPI.", type: "website" },
+    openGraph: { title, description: "Pick a gift they'll love, or send a cash gift by UPI.", type: "website" },
   };
 }
 
@@ -85,7 +86,7 @@ export default async function GuestPage({ params }: Params) {
         title: i.title,
         description: i.description,
         imageUrl: i.imageUrl,
-        emoji: i.emoji,
+        icon: i.icon,
         url: i.url,
         store: i.store,
         category: i.category,
@@ -125,9 +126,9 @@ export default async function GuestPage({ params }: Params) {
           </span>
         </div>
         <div className="relative mx-auto max-w-2xl">
-          <Toran className="mx-auto mt-2 h-6 w-56 text-white" />
+          <Lights className="mx-auto mt-2 h-6 w-56 text-white" />
           {registry.photo ? <img src={registry.photo} alt={tr(`${registry.partnerOne} and ${registry.partnerTwo}`, `${registry.partnerOne} और ${registry.partnerTwo}`)} className="mx-auto mt-5 size-32 rounded-full border-4 border-white/90 object-cover shadow-lg" /> : null}
-          <p className="mt-5 text-[13px] font-bold uppercase tracking-[0.24em] text-white/80">{tr("Shubh Vivah", "॥ शुभ विवाह ॥")}</p>
+          <p className="mt-5 text-[13px] font-bold uppercase tracking-[0.24em] text-white/80">{greetingFor(registry, lang)}</p>
           <h1 className="mt-2 font-display text-[2.6rem] font-semibold leading-tight text-white sm:text-5xl">
             {registry.partnerOne} <span className="text-marigold">&</span> {registry.partnerTwo}
           </h1>
@@ -137,7 +138,7 @@ export default async function GuestPage({ params }: Params) {
           )}
           {access.inviteName && (
             <p className="mt-4 text-[17px] text-white/95">
-              {tr(`Welcome, ${access.inviteName}`, `${access.inviteName}, आपका स्वागत है`)} 🙏
+              {tr(`Welcome, ${access.inviteName}`, `${access.inviteName}, आपका स्वागत है`)}
             </p>
           )}
         </div>
@@ -163,6 +164,7 @@ export default async function GuestPage({ params }: Params) {
           upi={registry.upiId ? { id: registry.upiId, name: registry.upiName || registry.partnerOne } : null}
           razorpay={razorpayEnabled()}
           guestName={access.inviteName ?? null}
+          giftWord={giftWordFor(registry, lang)}
         />
       </main>
 

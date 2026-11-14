@@ -15,7 +15,7 @@ import { FilterTabs } from "./filter-tabs";
 
 export default async function ShagunPage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ filter?: string }> }) {
   const { slug } = await params;
-  const user = await requireUser(`/dashboard/${slug}/shagun`);
+  const user = await requireUser(`/dashboard/${slug}/received`);
   const managed = await getManagedRegistry(slug, user);
   if (!managed) notFound();
   const { registry } = managed;
@@ -32,7 +32,7 @@ export default async function ShagunPage({ params, searchParams }: { params: Pro
 
   return (
     <div>
-      <Heading level={1}>{tr("Shagun & gifts", "शगुन और तोहफ़े")}</Heading>
+      <Heading level={1}>{tr("Everything received", "जो कुछ मिला")}</Heading>
       <p className="mt-1 text-secondary">
         {tr("Received", "मिला")}: <span className="font-semibold text-primary">{inr(data.stats.cashReceived) || "₹0"}</span>
         {data.stats.giftsValue > 0 && (
@@ -54,14 +54,14 @@ export default async function ShagunPage({ params, searchParams }: { params: Pro
 
       <div className="mt-4">
         {shown.length ? (
-          <EntryList slug={slug} entries={shown} couple={`${registry.partnerOne} & ${registry.partnerTwo}`} />
+          <EntryList slug={slug} entries={shown} couple={`${registry.partnerOne} & ${registry.partnerTwo}`} giftWord={registry.giftWord} />
         ) : (
           <Card padding={6}>
             <EmptyState
               title={filter === "all" ? tr("No blessings yet", "अभी कोई आशीर्वाद नहीं आया") : tr("All caught up!", "सब हो गया!")}
               description={
                 filter === "all"
-                  ? tr("Share your registry and shagun and gifts will appear here.", "रजिस्ट्री शेयर करें, शगुन और तोहफ़े यहाँ दिखेंगे।")
+                  ? tr("Share your registry and gifts will appear here.", "रजिस्ट्री शेयर करें, तोहफ़े यहाँ दिखेंगे।")
                   : tr("Nothing waiting for you here.", "यहाँ कुछ भी बाकी नहीं है।")
               }
               icon={filter === "all" ? <Flame className="size-10 text-marigold" /> : <Sparkles className="size-10 text-marigold" />}

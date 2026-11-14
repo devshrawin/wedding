@@ -2,7 +2,8 @@
 
 import { and, eq, max } from "drizzle-orm";
 import { z } from "zod";
-import { CATEGORIES } from "@/lib/catalog";
+import { CATEGORIES, CUSTOM_PREFIX } from "@/lib/catalog";
+import { isIconKey } from "@/components/icons";
 import { getDb, schema } from "@/lib/db";
 import { newId } from "@/lib/ids";
 import { fetchLinkPreview, parseSafeUrl, type LinkPreview } from "@/lib/link-preview";
@@ -19,10 +20,16 @@ const itemSchema = z.object({
   title: z.string().trim().min(1).max(140),
   description: z.string().trim().max(300).optional().transform((v) => v || null),
   imageUrl: z.string().trim().max(1000).optional().transform((v) => v || null),
-  emoji: z.string().trim().max(8).optional().transform((v) => v || null),
+  icon: z.string().trim().max(30).optional().transform((v) => (isIconKey(v) ? v : null)),
   url: z.string().trim().max(2000).optional().transform((v) => v || null),
   store: z.string().trim().max(40).optional().transform((v) => v || null),
-  category: z.enum(CATEGORIES.map((c) => c.key) as [string, ...string[]]).default("other"),
+  // A built-in section, or the couple's own: "c:Wall art" (see CUSTOM_PREFIX).
+  category: z
+    .string()
+    .trim()
+    .max(42)
+    .refine((v) => CATEGORIES.some((c) => c.key === v) || (v.startsWith(CUSTOM_PREFIX) && v.length > CUSTOM_PREFIX.length))
+    .default("other"),
   price: z.number().int().min(1).max(50_000_000).nullable(),
   quantity: z.number().int().min(1).max(50).default(1),
   allowChipIn: z.boolean().default(false),
@@ -97,7 +104,7 @@ export async function addFromCatalog(slug: string, catalogIds: string[], fundIds
   const m = await manage(slug);
   if (!m) return fail("auth");
   const { count, position } = await nextPosition(m.registry.id);
-  const rows = seedRows(m.registry.id, catalogIds.slice(0, 60), fundIds.slice(0, 10), await getLang(), position);
+  const rows = seedRows(m.registry.id, catalogIds.slice(0, 60), fundIds.slice(0, 10), await getLang(), m.registry.giftWord, position);
   if (!rows.length || count + rows.length > MAX_ITEMS) return fail("invalid");
   const db = await getDb();
   await db.insert(schema.items).values(rows);

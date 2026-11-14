@@ -95,12 +95,14 @@ export function whatsappLink(text: string, phone?: string | null): string {
 }
 
 export const THEMES = {
-  sindoor: { name: "Sindoor", nameHi: "सिंदूर", primary: "#9B1C31", soft: "#F9E7E6", deep: "#6B1020" },
+  ruby: { name: "Ruby", nameHi: "माणिक", primary: "#9B1C31", soft: "#F9E7E6", deep: "#6B1020" },
   marigold: { name: "Marigold", nameHi: "गेंदा", primary: "#A84B06", soft: "#FCEFD9", deep: "#6E3104" },
-  mehendi: { name: "Mehendi", nameHi: "मेहंदी", primary: "#1C6B4C", soft: "#E3F1E9", deep: "#0F4430" },
-  peacock: { name: "Peacock", nameHi: "मोरपंख", primary: "#1B4F7C", soft: "#E3EDF7", deep: "#0E3150" },
+  emerald: { name: "Emerald", nameHi: "पन्ना", primary: "#1C6B4C", soft: "#E3F1E9", deep: "#0F4430" },
+  peacock: { name: "Peacock", nameHi: "मोरपंखी", primary: "#1B4F7C", soft: "#E3EDF7", deep: "#0E3150" },
+  plum: { name: "Plum", nameHi: "जामुनी", primary: "#6B2D5C", soft: "#F3E6EF", deep: "#45183A" },
+  slate: { name: "Slate", nameHi: "स्लेटी", primary: "#3A4652", soft: "#E8ECF0", deep: "#232C35" },
 } as const;
 export type ThemeKey = keyof typeof THEMES;
 export function themeOf(key: string | null | undefined) {
-  return THEMES[(key as ThemeKey) in THEMES ? (key as ThemeKey) : "sindoor"];
+  return THEMES[(key as ThemeKey) in THEMES ? (key as ThemeKey) : "ruby"];
 }

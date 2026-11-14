@@ -40,7 +40,12 @@ export const registries = pgTable("registries", {
   city: text("city"),
   note: text("note"),
   photo: text("photo"), // "/img/<id>" served from the images table
-  theme: text("theme").notNull().default("sindoor"),
+  theme: text("theme").notNull().default("ruby"),
+  // ceremony style: optional, neutral by default. The texts are the couple's own words (or a preset they kept).
+  tradition: text("tradition").notNull().default("none"),
+  greeting: text("greeting"),
+  ledgerHeading: text("ledger_heading"),
+  giftWord: text("gift_word"),
   // privacy
   visibility: text("visibility").notNull().default("link"), // link | password | invite
   passwordHash: text("password_hash"),
@@ -78,7 +83,7 @@ export const items = pgTable(
     title: text("title").notNull(),
     description: text("description"),
     imageUrl: text("image_url"),
-    emoji: text("emoji"),
+    icon: text("icon"), // key from components/icons.tsx
     url: text("url"),
     store: text("store"),
     category: text("category").notNull().default("other"),

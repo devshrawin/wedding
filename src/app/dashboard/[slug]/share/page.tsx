@@ -3,6 +3,7 @@ import { desc, eq } from "drizzle-orm";
 import { getManagedRegistry, requireUser } from "@/lib/auth";
 import { getDb, schema } from "@/lib/db";
 import { getLang } from "@/lib/i18n";
+import { greetingFor } from "@/lib/traditions";
 import { appUrl, formatDate, themeOf } from "@/lib/utils";
 import { SharePanel } from "./share-panel";
 
@@ -25,6 +26,7 @@ export default async function SharePage({ params }: { params: Promise<{ slug: st
         partnerOne: registry.partnerOne,
         partnerTwo: registry.partnerTwo,
         dateText: formatDate(registry.weddingDate, lang),
+        greeting: greetingFor(registry, lang),
         city: registry.city,
         visibility: registry.visibility as "link" | "password" | "invite",
         theme: { primary: theme.primary, deep: theme.deep, soft: theme.soft },

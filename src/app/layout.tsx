@@ -8,9 +8,9 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl()),
-  title: { default: "Giftr: Wedding gift registry & shagun, made for India", template: "%s · Giftr" },
+  title: { default: "Giftr: Wedding gift registry, made for India", template: "%s · Giftr" },
   description:
-    "Create your wedding gift registry in a minute. Share on WhatsApp, receive shagun by UPI, avoid duplicate gifts. Private by default. Hindi + English.",
+    "Create your wedding gift registry in a minute. Share on WhatsApp, receive cash gifts by UPI, avoid duplicate gifts. Private by default. Hindi + English.",
   applicationName: "Giftr",
   appleWebApp: { capable: true, title: "Giftr", statusBarStyle: "default" },
   formatDetection: { telephone: false },

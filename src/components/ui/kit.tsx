@@ -5,6 +5,7 @@ import { Button } from "@astryxdesign/core/Button";
 import { Icon } from "@astryxdesign/core/Icon";
 import { ToggleButton } from "@astryxdesign/core/ToggleButton";
 import { Camera, ImagePlus, Trash2 } from "lucide-react";
+import { GiftIcon } from "@/components/icons";
 import { useTr } from "@/components/lang";
 import { compressImage } from "@/lib/image";
 import { cn, inr } from "@/lib/utils";
@@ -75,14 +76,12 @@ export function PhotoPicker({
   );
 }
 
-/** Product image with a friendly emoji tile behind it (shown while loading, or if the store's image fails). */
-export function ItemThumb({ imageUrl, emoji, className }: { imageUrl?: string | null; emoji?: string | null; className?: string }) {
+/** Product photo, or a line icon on a soft tile when there is no photo (or the store's image fails). */
+export function ItemThumb({ imageUrl, icon, className, iconClassName }: { imageUrl?: string | null; icon?: string | null; className?: string; iconClassName?: string }) {
   const [failed, setFailed] = useState(false);
   return (
-    <div className={cn("relative grid place-items-center overflow-hidden rounded-xl bg-brand-soft", className)}>
-      <span className="text-[2.2em] leading-none" aria-hidden>
-        {emoji || "🎁"}
-      </span>
+    <div className={cn("relative grid place-items-center overflow-hidden rounded-xl bg-brand-soft text-accent", className)}>
+      <GiftIcon name={icon} className={cn("size-[42%] min-h-5 min-w-5", iconClassName)} />
       {imageUrl && !failed && (
         <img src={imageUrl} alt="" loading="lazy" decoding="async" referrerPolicy="no-referrer" onError={() => setFailed(true)} className="absolute inset-0 size-full bg-white object-contain p-1.5" />
       )}

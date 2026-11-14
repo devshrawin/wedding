@@ -15,7 +15,7 @@ export default async function GiftsPage({ params, searchParams }: { params: Prom
     title: i.title,
     description: i.description,
     imageUrl: i.imageUrl,
-    emoji: i.emoji,
+    icon: i.icon,
     url: i.url,
     store: i.store,
     category: i.category,
@@ -31,5 +31,5 @@ export default async function GiftsPage({ params, searchParams }: { params: Prom
     givers: i.givers,
     chipInLeft: i.chipInLeft,
   }));
-  return <GiftsManager slug={slug} items={list} openAdd={(await searchParams).add === "1"} />;
+  return <GiftsManager slug={slug} items={list} openAdd={(await searchParams).add === "1"} tradition={managed.registry.tradition} giftWord={managed.registry.giftWord} />;
 }

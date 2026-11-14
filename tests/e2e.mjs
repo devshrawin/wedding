@@ -1,4 +1,4 @@
-// End-to-end walkthrough: couple creates → shares → guest reserves + sends shagun → couple confirms.
+// End-to-end walkthrough: couple creates → shares → guest reserves + sends a cash gift → couple confirms.
 // Usage: BASE=http://localhost:3000 SHOTS=/tmp/shots node tests/e2e.mjs   (server must run in demo mode)
 import { createRequire } from "node:module";
 // Resolves a globally installed Playwright too (NODE_PATH), not just a local one.
@@ -69,7 +69,7 @@ await cp.locator('input[type="date"]').fill("2027-02-12");
 await cp.getByPlaceholder("Jaipur").fill("Udaipur");
 await shot(cp, "wizard-1");
 await cp.getByRole("button", { name: "Next", exact: true }).click();
-await cp.getByText("Honeymoon Fund", { exact: true }).click();
+await cp.getByText("Honeymoon fund", { exact: true }).click();
 await shot(cp, "wizard-2");
 await audit(cp, "wizard");
 await cp.getByRole("button", { name: /Create registry with/ }).click();
@@ -105,10 +105,23 @@ if (!(await price.inputValue())) await price.fill("3499");
 await shot(cp, "gifts-link-form", false);
 await cp.getByRole("button", { name: "Add to wishlist" }).click();
 await cp.getByText("Added to your wishlist").first().waitFor();
-await cp.getByText("Air Fryer", { exact: true }).click();
+await cp.getByText("Air fryer", { exact: true }).click();
 await cp.getByLabel("Let guests chip in").check();
 await cp.getByRole("button", { name: "Save changes" }).click();
 await cp.getByText("Saved").first().waitFor();
+step("own gift in a new section, with an icon instead of a photo");
+await cp.getByRole("button", { name: "Add", exact: true }).click();
+await cp.getByText("Add a gift yourself").click();
+await cp.getByLabel("Gift name").fill("Wall clock with Arabic numerals");
+await cp.getByLabel("Price (₹)").fill("2499");
+await cp.getByRole("radio", { name: "Frame" }).click();
+await cp.getByRole("combobox", { name: "Section" }).click();
+await cp.getByRole("option", { name: /New section/ }).click();
+await cp.getByRole("listbox", { name: "Section" }).waitFor({ state: "hidden" });
+await cp.getByLabel("New section name").fill("Wall art");
+await cp.getByRole("button", { name: "Use", exact: true }).click();
+await cp.getByRole("button", { name: "Add to wishlist" }).click();
+await cp.getByText("Added to your wishlist").first().waitFor();
 await shot(cp, "gifts");
 await audit(cp, "wishlist");
 
@@ -123,9 +136,11 @@ await shot(gp, "guest-page");
 await audit(gp, "guest-page");
 const html = await gp.content();
 assert.ok(!html.includes(phone), "couple phone must never reach the guest page");
+assert.ok(await gp.getByText("We're getting married").isVisible(), "neutral greeting by default");
+for (const religious of ["Shubh", "शुभ", "गणेश", "Nikah", "ॐ"]) assert.ok(!html.includes(religious), `no "${religious}" unless the couple picks a style`);
 
 step("guest reserves a gift");
-await gp.getByRole("button", { name: /Pressure Cooker/ }).click();
+await gp.getByRole("button", { name: /Pressure cooker/ }).click();
 await shot(gp, "guest-item", false);
 await gp.getByRole("button", { name: /I'll gift this/ }).click();
 await gp.getByPlaceholder(/Sunita Sharma/).fill("Sunita Bua");
@@ -138,7 +153,7 @@ await gp.getByRole("button", { name: "Done" }).click();
 await gp.getByText("Reserved by you").waitFor();
 
 step("guest sends shagun by UPI");
-await gp.getByRole("button", { name: "Send shagun" }).first().click();
+await gp.getByRole("button", { name: "Send gift" }).first().click();
 await gp.getByRole("button", { name: "₹1,101" }).click();
 await shot(gp, "guest-shagun-amount", false);
 await gp.getByRole("button", { name: /Pay ₹1,101 by UPI/ }).click();
@@ -153,7 +168,7 @@ await shot(gp, "guest-shagun-done", false);
 await gp.getByRole("button", { name: "Done" }).click();
 
 step("chip-in gift shows what's left and refuses over-giving");
-await gp.getByRole("button", { name: /Air Fryer/ }).click();
+await gp.getByRole("button", { name: /Air fryer/ }).click();
 await gp.getByText("₹6,500 still needed").first().waitFor();
 await gp.getByRole("button", { name: "Chip in any amount" }).click();
 await gp.getByLabel("Other amount (₹)").fill("7000");
@@ -169,11 +184,11 @@ const html2 = await g2.content();
 assert.ok(!html2.includes("Sunita"), "guest names must not leak to other guests");
 assert.ok(!html2.includes("1,101") && !html2.includes("1101"), "amounts must not leak to other guests");
 assert.ok(!html2.includes("9812345678"), "guest phone must not leak");
-await g2.getByRole("button", { name: /Pressure Cooker/ }).click();
+await g2.getByRole("button", { name: /Pressure cooker/ }).click();
 await g2.getByText(/already gifting this/).waitFor();
 await g2.keyboard.press("Escape");
 step("anonymous pledge");
-await g2.getByRole("button", { name: "Send shagun" }).first().click();
+await g2.getByRole("button", { name: "Send gift" }).first().click();
 await g2.getByLabel("Other amount (₹)").fill("2000");
 await g2.getByRole("button", { name: /Make it ₹2,001/ }).click();
 await g2.getByLabel("Give anonymously").check();
@@ -190,7 +205,7 @@ await cp.getByRole("button", { name: "Yes, received" }).first().click();
 await cp.getByText("Confirmed").first().waitFor();
 
 step("cash entry");
-await cp.goto(`${BASE}/dashboard/${slug}/shagun`);
+await cp.goto(`${BASE}/dashboard/${slug}/received`);
 await cp.getByRole("button", { name: "Add cash entry" }).click();
 await cp.getByPlaceholder(/Sharma ji/).fill("Gupta Uncle");
 await cp.getByRole("dialog").getByRole("button", { name: "₹2,101" }).click();
@@ -212,8 +227,9 @@ await cp.getByText("Marked as thanked").first().waitFor();
 
 step("ledger + csv");
 await cp.goto(`${BASE}/dashboard/${slug}/ledger`);
-await cp.getByRole("heading", { name: "Shagun Ledger" }).waitFor();
+await cp.getByRole("heading", { name: "Gift ledger" }).waitFor();
 assert.ok(await cp.getByText("Gupta Uncle").isVisible());
+for (const religious of ["गणेश", "ॐ", "शुभ"]) assert.ok(!(await cp.content()).includes(religious), "neutral ledger by default");
 await shot(cp, "ledger");
 await audit(cp, "ledger");
 const csv = await (await couple.request.get(`${BASE}/api/ledger/${slug}`)).text();
@@ -290,9 +306,32 @@ await login(sp, "6" + phone.slice(1), "/dashboard");
 const res = await sp.goto(`${BASE}/dashboard/${slug}`);
 assert.equal(res.status(), 404, "strangers cannot open someone else's dashboard");
 
+step("ceremony style is opt-in and fully editable");
+await cp.goto(`${BASE}/dashboard/${slug}/settings`);
+await cp.getByRole("combobox", { name: "Ceremony style" }).click();
+await cp.getByRole("option", { name: "Muslim (Nikah)" }).click();
+await cp.getByRole("listbox", { name: "Ceremony style" }).waitFor({ state: "hidden" });
+assert.equal(await cp.getByLabel("Greeting above your names").inputValue(), "Nikah Mubarak");
+await cp.getByLabel("Your word for gift money").fill("Salami");
+await shot(cp, "settings-ceremony", false);
+await cp.getByRole("button", { name: "Save wording" }).click();
+await cp.getByText("Saved").first().waitFor();
+const styled = await browser.newContext(mobile);
+const sp2 = await styled.newPage();
+// registry is invite-only by now: use a fresh invite link
+await cp.goto(`${BASE}/dashboard/${slug}/share`);
+await cp.getByLabel(/Guest or family names/).fill("Khan family");
+await cp.getByRole("button", { name: "Create invite links" }).click();
+const wa2 = await cp.getByRole("link", { name: /Send to Khan family/ }).getAttribute("href");
+await sp2.goto(decodeURIComponent(wa2).match(/https?:\/\/\S+\/i\/[a-z0-9]+/)[0].replace(/^https?:\/\/[^/]+/, BASE));
+await sp2.getByText("Nikah Mubarak").waitFor();
+await sp2.getByRole("button", { name: "Send salami" }).first().waitFor();
+assert.ok(await sp2.getByText("Prayer mat (janamaz)").count() === 0, "faith items are suggestions, never auto-added");
+await shot(sp2, "guest-nikah");
+
 step("hindi");
 await cp.getByRole("radio", { name: "हिं" }).first().click();
-await cp.getByRole("heading", { name: "सेटिंग" }).waitFor();
+await cp.getByRole("heading", { name: "रजिस्ट्री शेयर करें" }).waitFor();
 await cp.goto(`${BASE}/dashboard/${slug}`);
 await shot(cp, "dashboard-hindi");
 await cp.goto(`${BASE}/dashboard/${slug}/ledger`);

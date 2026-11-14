@@ -10,7 +10,7 @@ import { IconButton } from "@astryxdesign/core/IconButton";
 import { SegmentedControl, SegmentedControlItem } from "@astryxdesign/core/SegmentedControl";
 import { TextArea } from "@astryxdesign/core/TextArea";
 import { Check, Gift, Heart, ImageIcon, MessageCircle, MoreHorizontal, Undo2, X } from "lucide-react";
-import { deleteContribution, releaseReservation, setContributionStatus, setThanked } from "@/app/actions/shagun";
+import { deleteContribution, releaseReservation, setContributionStatus, setThanked } from "@/app/actions/received";
 import { useLang, useTr } from "@/components/lang";
 import { CopyButton, toast } from "@/components/ui/feedback";
 import { Sheet } from "@/components/ui/sheet";
@@ -19,7 +19,7 @@ import { guestLabel, methodLabel, type Entry } from "@/lib/entries";
 import { errorText, type Result } from "@/lib/result";
 import { cn, inr, prettyPhone, whatsappLink } from "@/lib/utils";
 
-export function EntryList({ slug, entries, couple, compact }: { slug: string; entries: Entry[]; couple: string; compact?: boolean }) {
+export function EntryList({ slug, entries, couple, compact, giftWord = null }: { slug: string; entries: Entry[]; couple: string; compact?: boolean; giftWord?: string | null }) {
   const tr = useTr();
   const lang = useLang();
   const router = useRouter();
@@ -112,6 +112,7 @@ export function EntryList({ slug, entries, couple, compact }: { slug: string; en
 
       {thanking && (
         <ThankSheet
+          giftWord={giftWord}
           entry={thanking}
           couple={couple}
           onClose={() => setThanking(null)}
@@ -181,7 +182,7 @@ export function EntryList({ slug, entries, couple, compact }: { slug: string; en
   );
 }
 
-function ThankSheet({ entry, couple, onClose, onSent }: { entry: Entry; couple: string; onClose: () => void; onSent: () => void }) {
+function ThankSheet({ entry, couple, giftWord, onClose, onSent }: { entry: Entry; couple: string; giftWord: string | null; onClose: () => void; onSent: () => void }) {
   const tr = useTr();
   const uiLang = useLang();
   const [lang, setLang] = useState<"en" | "hi">(uiLang);
@@ -195,6 +196,7 @@ function ThankSheet({ entry, couple, onClose, onSent }: { entry: Entry; couple: 
       amount: entry.amount,
       fund: entry.kind === "contribution" && entry.itemTitle ? entry.itemTitle : null,
       couple,
+      word: giftWord,
     });
   const [text, setText] = useState(() => make(uiLang, "warm"));
   const pick = (l: "en" | "hi", t: Tone) => {
